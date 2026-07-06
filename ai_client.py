@@ -1,9 +1,9 @@
 """
-AI Client — 4-Model Architecture
-1. Master — narrative + dice rolling
-2. DB-Bot — database operations, journal, sheet validation
-3. Renderer — text → Telegram HTML
-4. Memory — summary, SRD, rules lookup
+AI Client - 4-Model Architecture
+1. Master (Kimi K2.6) - narrative + dice rolling
+2. DB-Bot (Llama 4 Maverick) - database operations, journal, sheet validation
+3. Renderer (Llama 3.3 70B Free) - text → Telegram HTML
+4. Memory (DeepSeek V4 Flash) - summary, SRD, rules lookup
 """
 
 import json
@@ -1180,7 +1180,7 @@ class DMEngine:
             return ""
 
     async def validate_character_sheet(self, sheet_text: str) -> Dict[str, str]:
-        """Validate character sheet using DB-Bot — rules expert"""
+        """Validate character sheet using DB-Bot (Llama 4) - rules expert"""
         prompt = f"""Ты - эксперт по правилам D&D 5e (2024). Проверь лист персонажа.
 
 ВАЖНЫЕ ПРАВИЛА ПРОВЕРКИ:
@@ -1303,7 +1303,7 @@ class DMEngine:
     # ═══════════════════════════════════════════════════════════
 
     async def parse_character_sheet(self, sheet_text: str) -> Optional[ParsedCharacter]:
-        """Parse raw character sheet text using LLM. Returns dict or None."""
+        """Parse raw character sheet text using Llama 4. Returns dict or None."""
         from character_parser import ParsedCharacter
         prompt = f"""Ты - парсер листов персонажей D&D 5e (2024).
 
@@ -1356,7 +1356,7 @@ class DMEngine:
             response = await self.db_bot.chat(messages, system_prompt=None, tools=None, tool_choice=None)
             raw = response["choices"][0]["message"].get("content", "")
             # Strip markdown code blocks if present
-            logger.info(f"[parse_character_sheet] AI raw response: {raw[:500]}...")
+            logger.info(f"[parse_character_sheet] Llama 4 raw response: {raw[:500]}...")
             raw = raw.strip()
             if raw.startswith("```json"):
                 raw = raw[7:]

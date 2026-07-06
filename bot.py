@@ -407,8 +407,8 @@ async def char_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
         sheet_text = Path(fp).read_text(encoding="utf-8")
 
-        # === AI VALIDATION ===
-        await send_safe(update, "🔍 Проверяю лист персонажа...")
+        # === GRANITE VALIDATION ===
+        await send_safe(update, "🔍 Проверяю лист персонажа правилами D&D 5e...")
         validation = await dm_engine.validate_character_sheet(sheet_text)
 
         if validation["verdict"] == "REJECT":
@@ -431,7 +431,7 @@ async def char_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
         db.save_character_sheet(session.id, user.id, sheet_text, doc.file_name)
 
-        # === AI PARSING (primary) ===
+        # === LLAMA 4 PARSING (primary) ===
         parsed = await dm_engine.parse_character_sheet(sheet_text)
         if not parsed:
             # Fallback to Python parser
@@ -969,7 +969,7 @@ async def clear_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 async def summary_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Generate session summary using Memory model"""
+    """Generate session summary using Granite"""
     chat_id = update.effective_chat.id
     user = update.effective_user
     session = get_session(chat_id)
@@ -2267,14 +2267,7 @@ async def npc_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
         lines = ["🎭 **NPC в реестре:**"]
         for npc in npcs:
-            personality = ""
-            if npc.personality:
-                try:
-                    p = json.loads(npc.personality)
-                    personality = p.get("traits", "")[:50]
-                except:
-                    personality = str(npc.personality)[:50]
-            lines.append(f"• **{npc.name}**{f' — {personality}' if personality else ''}")
+            lines.append(f"• **{npc.npc_name}**{f' — {npc.personality_pattern[:50]}' if npc.personality_pattern else ''}")
 
         await send_safe(update, "\n".join(lines))
         return
