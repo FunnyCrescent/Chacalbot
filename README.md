@@ -35,3 +35,61 @@ pip install -r requirements.txt
 cp .env.example .env
 # Отредактируй .env, добавь токены
 python bot.py
+```
+
+### Первые шаги в Telegram
+
+1. `/new Название кампании` — создать сессию
+2. `/join` — присоединиться
+3. Отправить `.txt` / `.md` лист персонажа и ответить `/character`
+4. `Дн. я атакую гоблина мечом!` — сходить
+
+## 📋 Команды
+
+| Команда | Описание |
+|---------|----------|
+| `/new` | Создать сессию |
+| `/join` | Войти в сессию |
+| `/character` | Загрузить лист персонажа |
+| `/combat` | Начать бой |
+| `/ask` | Вопрос мастеру вне очереди |
+| `/hp` | Показать / изменить HP |
+| `/inventory` | Инвентарь |
+| `/quest` | Журнал квестов |
+| `/world` | Генерация мира |
+| `/npc` | Управление NPC |
+| `/dbask` | Апелляция к DB-Боту |
+| `/do` | Приватное действие (в ЛС) |
+
+## 📁 Структура
+
+```
+Chacalbot/
+├── bot.py              # Telegram-бот, команды, хендлеры
+├── ai_client.py        # 4-модульная AI-архитектура
+├── db.py               # SQLite-схема и операции
+├── session_manager.py  # Логика сессий, очереди, боя
+├── character_parser.py # Парсер листов персонажей
+├── dice_parser.py      # Броски костей, криты, преимущество
+├── config.py           # Конфигурация (читает .env)
+├── prompts/            # Промпты для AI (подготовка к мультиязычности)
+├── data/               # SQLite-базы сессий
+├── logs/               # Логи кампаний
+├── characters/         # Загруженные листы персонажей
+└── .env.example        # Шаблон переменных окружения
+```
+
+## ⚙️ Требования
+
+- Python 3.11+
+- Telegram Bot Token (получить у [@BotFather](https://t.me/BotFather))
+- OpenRouter API Key (или любой OpenAI-compatible провайдер)
+
+## 📝 Лицензия
+
+MIT License — см. [LICENSE](LICENSE).
+
+## 🐺 Автор
+
+**Eira** — [@crescentfunny](https://t.me/crescentfunny)  
+GitHub: [FunnyCrescent/Chacalbot](https://github.com/FunnyCrescent/Chacalbot)
