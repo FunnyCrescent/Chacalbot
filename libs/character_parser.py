@@ -35,7 +35,11 @@ class ParsedCharacter:
     ac: int = 10
     speed: int = 30
     hit_dice: int = 8
-    gold: int = 0
+    gold: int = 0       # gp — kept for backward compatibility
+    gold_cp: int = 0
+    gold_sp: int = 0
+    gold_ep: int = 0
+    gold_pp: int = 0
 
     proficiencies: List[str] = field(default_factory=list)
     skills: List[str] = field(default_factory=list)
@@ -293,10 +297,13 @@ class CharacterParser:
             dex_mod = char.get_modifier("dexterity")
             char.ac = 10 + dex_mod
 
-        # Extract gold
-        gold = cls._extract_gold(content)
-        if gold:
-            char.gold = gold
+        # Extract gold — all denominations, not just gp
+        gold_all = cls._extract_all_currencies(content)
+        char.gold = gold_all.get("gp", 0)
+        char.gold_cp = gold_all.get("cp", 0)
+        char.gold_sp = gold_all.get("sp", 0)
+        char.gold_ep = gold_all.get("ep", 0)
+        char.gold_pp = gold_all.get("pp", 0)
 
         # Extract lists
         char.proficiencies = cls._extract_list(content, [
@@ -556,19 +563,24 @@ class CharacterParser:
         return None
 
     @classmethod
-    def _extract_gold(cls, text: str) -> Optional[int]:
-        patterns = [
-            r"(\d+)\s*зм\s*стартового",
-            r"(\d+)\s*зм",
-            r"(\d+)\s*gp",
-            r"(\d+)\s*золотых",
-            r"(\d+)\s*gold",
-        ]
-        for p in patterns:
-            match = re.search(p, text, re.IGNORECASE)
-            if match:
-                return int(match.group(1))
-        return None
+    def _extract_all_currencies(cls, text: str) -> Dict[str, int]:
+        """H3 fix: the old version only ever found gold pieces. Real sheets often list
+        starting money as a mix ('12 зм, 5 см, 20 мм') — pull every denomination out."""
+        currency_patterns = {
+            "gp": [r"(\d+)\s*(?:зм|золот\w*|gp|gold)\b"],
+            "sp": [r"(\d+)\s*(?:см|сереб\w*|sp|silver)\b"],
+            "cp": [r"(\d+)\s*(?:мм|медн\w*|cp|copper)\b"],
+            "ep": [r"(\d+)\s*(?:эм|электрум\w*|ep|electrum)\b"],
+            "pp": [r"(\d+)\s*(?:пм|платин\w*|pp|platinum)\b"],
+        }
+        result = {"cp": 0, "sp": 0, "ep": 0, "gp": 0, "pp": 0}
+        for currency, patterns in currency_patterns.items():
+            for p in patterns:
+                match = re.search(p, text, re.IGNORECASE)
+                if match:
+                    result[currency] = int(match.group(1))
+                    break
+        return result
 
     @classmethod
     def _match_any_pattern(cls, text: str, patterns: List[str]) -> Optional[str]:

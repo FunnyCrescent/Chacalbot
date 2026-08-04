@@ -1,0 +1,102 @@
+# plugins.toml — конфигурация плагинов D&D бота.
+#
+# [plugins.<name>]
+#   enabled = true | false   — включить/выключить (по умолчанию true)
+#
+# При изменении требуется перезапуск бота.
+
+[core]
+log_level = "INFO"
+concurrent_updates = true
+
+# ═══════════════════════════════════════════════════════════════════
+# Сервисные плагины — ФУНДАМЕНТ. Отключать только если понимаешь последствия.
+# ═══════════════════════════════════════════════════════════════════
+
+[plugins.persistence]
+enabled = true
+# libs/db/ (11 файлов): models + base + 8 mixin repos + manager + saved_chars
+
+[plugins.ai-engine]
+enabled = true
+# libs/ai/ (13 файлов): tools + prompts + client + base + 7 mixins + engine
+
+[plugins.session-core]
+enabled = true
+# libs/session/ (11 файлов): base + 8 mixins + manager
+
+[plugins.logging]
+enabled = true
+
+# ═══════════════════════════════════════════════════════════════════
+# Feature plugins — можно выключать по отдельности.
+# ═══════════════════════════════════════════════════════════════════
+
+[plugins.lobby-session]
+enabled = true
+
+[plugins.character]
+enabled = true
+# Включает: /cymeriad /taflen /gallu /sp /creu + charpick callbacks
+
+[plugins.character-state]
+enabled = true
+# /iechyd /arbedmarwolaeth /cyflwr /gorffwys /aur /eiddo /cwest /nodau /perthynasau
+
+[plugins.world-state]
+enabled = true
+# /amser /tywydd /ffactiynau /cymeriadnc /dinas /byd /digwyddiad /lleoliad /adnoddau
+
+[plugins.dice]
+enabled = true
+# /rholio /modd /canolbwyntio + roll:/gwroll: callbacks
+
+[plugins.memory]
+enabled = true
+# Semantic memory store (background)
+
+[plugins.settings-catalog]
+enabled = true
+# /categori /categori_add /dyfroddi /dndcychwyn /setcurrency
+
+[plugins.srd-reference]
+enabled = true
+# /cyfeirlyfr — SRD lookup
+
+[plugins.translator]
+enabled = true
+# /cyfieithu + lang: callbacks
+
+[plugins.admin]
+enabled = true
+# /gofyn /dbgofyn /gwneud /clirio /crynodeb /diddymu /gorfoddatrys /sgipio
+# /gorffenymladd /cccg + global error_handler
+
+[plugins.anti-spam]
+enabled = true
+# Clean Book Mode (cross-cutting)
+
+# ═══════════════════════════════════════════════════════════════════
+# DM Narrator + sub-plugins (mixins)
+# ═══════════════════════════════════════════════════════════════════
+
+[plugins.narrator]
+enabled = true
+# Главный ДМ-наративщик. Extension points:
+#   narrator.on_action_collected
+#   narrator.on_master_output
+#   narrator.on_round_resolved
+#   narrator.combat_turn_started
+#   narrator.combat_turn_ended
+
+[plugins.combat-driver]
+enabled = true
+# Mixin: initiative combat loop. Если выключить — бои не запустятся.
+
+[plugins.db-bot-phase]
+enabled = true
+# Mixin: LLM-агент для mutations (HP/gold/conditions).
+
+[plugins.renderer]
+enabled = true
+# Mixin: MD→HTML + chunked send.
