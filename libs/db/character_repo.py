@@ -318,6 +318,8 @@ class CharacterRepoMixin:
     # ═══════════════════════════════════════════════════════════
 
 
+    @staticmethod
+
     def _row_to_character(row: sqlite3.Row) -> Character:
         return Character(
             id=row["id"],
@@ -342,8 +344,6 @@ class CharacterRepoMixin:
             conditions=row["conditions"] or "[]",
             languages=row["languages"] or "[]",
         )
-
-    @staticmethod
 
     def add_hp_log(self, session_id: str, character_id: str, character_name: str,
                    old_hp: int, new_hp: int, source: str = ""):
