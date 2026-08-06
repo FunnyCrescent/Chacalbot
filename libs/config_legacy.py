@@ -22,9 +22,10 @@ if os.path.exists(env_path):
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 
 # ═══════════════════════════════════════════════════════════════
-# API PROVIDER — polza.ai (OpenAI-совместимый)
+# API PROVIDER — any OpenAI-compatible endpoint
+# (OpenAI, OpenRouter, Together, Groq, DeepSeek, LM Studio, Ollama, vLLM, ...)
 # ═══════════════════════════════════════════════════════════════
-OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://polza.ai/api/v1")
+OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 
 if not TELEGRAM_BOT_TOKEN:
@@ -63,7 +64,8 @@ MEMORY_MAX_TOKENS = 8192
 # ═══════════════════════════════════════════════════════════════
 # MODEL 5 — EMBEDDINGS (world memory / semantic diary)
 # ═══════════════════════════════════════════════════════════════
-# Polza.ai — OpenAI-совместимый эндпоинт /embeddings на том же OPENAI_BASE_URL.
+# Any OpenAI-compatible endpoint — exposes /embeddings alongside /chat/completions.
+# Works with OpenAI, OpenRouter (when enabled), Together, vLLM, LocalAI, LM Studio, Ollama, etc.
 EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_ENDPOINT = "/embeddings"
 MEMORY_TOP_K = 8                    # сколько записей памяти подмешивать в контекст хода

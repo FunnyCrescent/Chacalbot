@@ -131,11 +131,39 @@ pip install -r requirements.txt
 
 # 2. Создать .env
 cp .env.example .env
-# TELEGRAM_BOT_TOKEN, OPENAI_API_KEY, ADMIN_CHAT_ID
+# TELEGRAM_BOT_TOKEN, OPENAI_API_KEY, OPENAI_BASE_URL, ADMIN_CHAT_ID
 
 # 3. Запустить
 python main.py
 ```
+
+## 🔌 LLM-провайдер
+
+Бот работает с **любым OpenAI-совместимым API** — везде, где есть эндпоинт `/chat/completions`. Никакой привязки к конкретному вендору.
+
+Достаточно указать в `.env`:
+
+```
+OPENAI_API_KEY=your-key
+OPENAI_BASE_URL=https://api.openai.com/v1
+```
+
+Проверенные варианты:
+
+| Провайдер | `OPENAI_BASE_URL` |
+|-----------|-------------------|
+| OpenAI | `https://api.openai.com/v1` |
+| OpenRouter | `https://openrouter.ai/api/v1` |
+| DeepSeek | `https://api.deepseek.com/v1` |
+| Groq | `https://api.groq.com/openai/v1` |
+| Together | `https://api.together.xyz/v1` |
+| Anyscale | `https://api.endpoints.anyscale.com/v1` |
+| LM Studio (локально) | `http://localhost:1234/v1` |
+| Ollama (OpenAI compat) | `http://localhost:11434/v1` |
+| vLLM (локально) | `http://localhost:8000/v1` |
+| LocalAI (локально) | `http://localhost:8080/v1` |
+
+Модели по умолчанию заданы в `libs/config_legacy.py` (`MASTER_MODEL`, `DB_MODEL`, `RENDERER_MODEL`, `MEMORY_MODEL`, `MODER_AI_MODEL` и т.д.). Переопредели их в `.env`, если твой провайдер использует другие ID моделей. Для эмбеддингов (world memory) используется тот же `OPENAI_BASE_URL` + эндпоинт `/embeddings` — работает с OpenAI, OpenRouter, Together, vLLM, LocalAI, LM Studio, Ollama.
 
 ## Структура проекта
 
