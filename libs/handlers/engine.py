@@ -288,14 +288,19 @@ async def _start_combat_turn_loop(session_id: str, chat_id: int, bot_obj):
         logger.warning(f"[combat-loop] Loop already active for {session_id}, skipping duplicate")
         return
     _active_combat_loops[session_id] = True
+    logger.info(f"[combat-loop] Starting combat turn loop for {session_id}")
 
     try:
         # Wait for DB-Bot to finish before starting — otherwise we may read stale
         # character state (HP, conditions, etc.) from the round that just resolved.
+        db_wait_start = asyncio.get_event_loop().time()
         for _ in range(60):  # up to 60 seconds
             if not sessions.is_db_busy(session_id):
                 break
             await asyncio.sleep(1)
+        db_wait_elapsed = asyncio.get_event_loop().time() - db_wait_start
+        if db_wait_elapsed > 5:
+            logger.warning(f"[combat-loop] Waited {db_wait_elapsed:.1f}s for DB-Bot to finish")
 
         db = db_manager.get_db(session_id)
         handle = _ChatHandle(bot_obj, chat_id)
@@ -326,6 +331,7 @@ async def _start_combat_turn_loop(session_id: str, chat_id: int, bot_obj):
 
             if current["entity_type"] != "pc":
                 # ── NPC turn — auto-resolve, separate message ──
+                logger.info(f"[combat-loop] NPC turn: {current['name']} (round {session.round_number}, index {session.current_turn_index})")
                 await _resolve_npc_combat_turn(session_id, current, chat_id, bot_obj)
 
                 # Check if combat ended (diweddymladd called by Master)
@@ -339,6 +345,7 @@ async def _start_combat_turn_loop(session_id: str, chat_id: int, bot_obj):
                 await asyncio.sleep(2)
             else:
                 # ── PC turn — prompt player and EXIT loop ──
+                logger.info(f"[combat-loop] PC turn: {current['name']} (round {session.round_number}, index {session.current_turn_index})")
                 await _setup_pc_combat_turn(session_id, current, chat_id, bot_obj)
                 _active_combat_loops.pop(session_id, None)  # allow re-entry when PC acts
                 return

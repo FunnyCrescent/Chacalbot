@@ -1,529 +1,460 @@
 {
   "_meta": {
-    "edition": "D&D 5e (Official Sourcebooks)",
-    "description": "All official races beyond PHB, from Volo, Mordenkainen, Elemental Evil, Eberron, Wildemount, Monsters of the Multiverse, Tal Dorei Reborn, etc."
+    "edition": "D&D 5e (2014) — Extended",
+    "description": "All 9 PHB races + 30+ races from official supplements (Volo's Guide, Mordenkainen's Tome, Tasha's Cauldron, Elemental Evil, Acquisitions Inc., Ravnica, Theros, Wildemount, Strixhaven, Fizban's, Spelljammer, Bigby's). Total: 40+ races.",
+    "sources": ["PHB", "VGM", "MTF", "TCOE", "EE", "AI", "GGR", "MOoT", "EGtW", "SCoT", "FToD", "AAG", "BGG"]
   },
   "races": {
+    "Dwarf": {
+      "ability_bonus": { "constitution": 2 },
+      "speed": 25,
+      "traits": ["Darkvision 60 ft", "Dwarven Resilience", "Dwarven Combat Training", "Tool Proficiency", "Stonecunning"],
+      "languages": ["Common", "Dwarvish"],
+      "subraces": {
+        "Hill Dwarf": { "ability_bonus": { "wisdom": 1 }, "traits": ["Dwarven Toughness (+1 HP per level)"], "source": "PHB" },
+        "Mountain Dwarf": { "ability_bonus": { "strength": 2 }, "traits": ["Dwarven Armor Training"], "source": "PHB" }
+      }
+    },
+    "Elf": {
+      "ability_bonus": { "dexterity": 2 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Keen Senses", "Fey Ancestry", "Trance"],
+      "languages": ["Common", "Elvish"],
+      "subraces": {
+        "High Elf": { "ability_bonus": { "intelligence": 1 }, "traits": ["Elf Weapon Training", "Cantrip", "Extra Language"], "source": "PHB" },
+        "Wood Elf": { "ability_bonus": { "wisdom": 1 }, "traits": ["Elf Weapon Training", "Mask of the Wild", "Fleet of Foot"], "speed": 35, "source": "PHB" },
+        "Drow": { "ability_bonus": { "charisma": 1 }, "traits": ["Superior Darkvision 120 ft", "Sunlight Sensitivity", "Drow Magic", "Drow Weapon Training"], "source": "PHB" },
+        "Eladrin": { "ability_bonus": { "charisma": 1 }, "traits": ["Fey Step", "Seasonal Cantrip"], "source": "MTF" },
+        "Sea Elf": { "ability_bonus": { "constitution": 1 }, "traits": ["Sea Elf Training", "Child of the Sea", "Friends Cantrip"], "source": "MTF" },
+        "Shadar-Kai": { "ability_bonus": { "constitution": 1 }, "traits": ["Shadow Touched", "Necrotic Shroud", "Blessing of the Raven Queen"], "source": "MTF" },
+        "Pallid Elf": { "ability_bonus": { "constitution": 1 }, "traits": ["Pallid Origins", "Incisive Senses"], "source": "EGtW" },
+        "Mark of Shadow": { "ability_bonus": { "charisma": 1 }, "traits": ["Dragonmark Ability", "Cunning Intuition", "Shadows of Thalem"], "source": "EGtW" }
+      }
+    },
+    "Halfling": {
+      "ability_bonus": { "dexterity": 2 },
+      "speed": 25,
+      "traits": ["Lucky", "Brave", "Halfling Nimbleness"],
+      "languages": ["Common", "Halfling"],
+      "subraces": {
+        "Lightfoot": { "ability_bonus": { "charisma": 1 }, "traits": ["Naturally Stealthy"], "source": "PHB" },
+        "Stout": { "ability_bonus": { "constitution": 1 }, "traits": ["Stout Resilience"], "source": "PHB" },
+        "Ghostwise": { "ability_bonus": { "wisdom": 1 }, "traits": ["Silent Speech"], "source": "VGM" },
+        "Lotusden": { "ability_bonus": { "wisdom": 1 }, "traits": ["Lotusden Halfling Traits"], "source": "EGtW" },
+        "Mark of Healing": { "ability_bonus": { "wisdom": 1 }, "traits": ["Dragonmark", "Healing Spells"], "source": "EGtW" },
+        "Mark of Hospitality": { "ability_bonus": { "charisma": 1 }, "traits": ["Dragonmark", "Ever Hospitable"], "source": "EGtW" }
+      }
+    },
+    "Human": {
+      "ability_bonus": { "strength": 1, "dexterity": 1, "constitution": 1, "intelligence": 1, "wisdom": 1, "charisma": 1 },
+      "speed": 30,
+      "traits": ["Extra Language"],
+      "languages": ["Common"],
+      "subraces": {
+        "Variant Human": { "ability_bonus": "two different ability scores of your choice +1 each", "traits": ["One skill proficiency of choice", "One feat of choice"], "source": "PHB" },
+        "Mark of Finding": { "ability_bonus": { "wisdom": 2 }, "traits": ["Dragonmark", "Hunter's Intuition", "Seeker's Mark"], "source": "EGtW" },
+        "Mark of Handling": { "ability_bonus": { "wisdom": 1 }, "traits": ["Dragonmark", "Beast Whisperer"], "source": "EGtW" },
+        "Mark of Making": { "ability_bonus": { "dexterity": 1 }, "traits": ["Dragonmark", "Spells of Making"], "source": "EGtW" },
+        "Mark of Passage": { "ability_bonus": { "dexterity": 1 }, "traits": ["Dragonmark", "Windwright's Intuition"], "source": "EGtW" },
+        "Mark of Scribing": { "ability_bonus": { "intelligence": 1 }, "traits": ["Dragonmark", "Scribe's Gift"], "source": "EGtW" },
+        "Mark of Sentinel": { "ability_bonus": { "constitution": 1 }, "traits": ["Dragonmark", "Sentinel's Shield"], "source": "EGtW" },
+        "Mark of Storm": { "ability_bonus": { "dexterity": 1 }, "traits": ["Dragonmark", "Wind Speaker"], "source": "EGtW" },
+        "Kessig": { "ability_bonus": { "dexterity": 1 }, "traits": ["Kessig Heritage"], "source": "EGtW" }
+      }
+    },
+    "Dragonborn": {
+      "ability_bonus": { "strength": 2, "charisma": 1 },
+      "speed": 30,
+      "traits": ["Draconic Ancestry", "Breath Weapon", "Damage Resistance"],
+      "languages": ["Common", "Draconic"],
+      "draconic_ancestry_types": ["Black (acid)", "Blue (lightning)", "Brass (fire)", "Bronze (lightning)", "Copper (acid)", "Gold (fire)", "Green (poison)", "Red (fire)", "Silver (cold)", "White (cold)"],
+      "subraces": {}
+    },
+    "Gnome": {
+      "ability_bonus": { "intelligence": 2 },
+      "speed": 25,
+      "traits": ["Darkvision 60 ft", "Gnome Cunning"],
+      "languages": ["Common", "Gnomish"],
+      "subraces": {
+        "Forest Gnome": { "ability_bonus": { "dexterity": 1 }, "traits": ["Natural Illusionist", "Speak with Small Beasts"], "source": "PHB" },
+        "Rock Gnome": { "ability_bonus": { "constitution": 1 }, "traits": ["Artificer Lore", "Tinker"], "source": "PHB" },
+        "Deep Gnome (Svirfneblin)": { "ability_bonus": { "dexterity": 1 }, "traits": ["Superior Darkvision 120 ft", "Stone Camouflage", "Svirfneblin Magic"], "source": "VGM" },
+        "Mark of Scribing": { "ability_bonus": { "charisma": 1 }, "traits": ["Dragonmark", "Scribe's Intuition"], "source": "EGtW" }
+      }
+    },
+    "Half-Elf": {
+      "ability_bonus": { "charisma": 2 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Fey Ancestry", "Two skill proficiencies of choice", "Two ability score increases of choice (+1 each)"],
+      "languages": ["Common", "Elvish"],
+      "subraces": {
+        "Mark of Detection": { "ability_bonus": { "wisdom": 1 }, "traits": ["Dragonmark", "Detective's Intuition"], "source": "EGtW" },
+        "Mark of Storm": { "ability_bonus": { "dexterity": 1 }, "traits": ["Dragonmark", "Windwright's Intuition"], "source": "EGtW" }
+      }
+    },
+    "Half-Orc": {
+      "ability_bonus": { "strength": 2, "constitution": 1 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Savage Attacks", "Relentless Endurance", "Menacing"],
+      "languages": ["Common", "Orc"],
+      "subraces": {}
+    },
+    "Tiefling": {
+      "ability_bonus": { "intelligence": 1, "charisma": 2 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Hellish Resistance", "Infernal Legacy"],
+      "languages": ["Common", "Infernal"],
+      "subraces": {
+        "Devil's Tongue": { "ability_bonus": {}, "traits": ["Devil's Tongue Spells"], "source": "SCoT" },
+        "Hellfire": { "ability_bonus": {}, "traits": ["Hellfire Spells"], "source": "SCoT" },
+        "Winged": { "ability_bonus": {}, "traits": ["Winged (flight speed 30 ft)"], "source": "SCoT" },
+        "Feral": { "ability_bonus": {}, "traits": ["Feral Traits"], "source": "SCoT" },
+        "Zariel": { "ability_bonus": { "strength": 1 }, "traits": ["Zariel Spells (thaumaturgy, smite, brand)"], "source": "MTF" },
+        "Glasya": { "ability_bonus": { "dexterity": 1 }, "traits": ["Glasya Spells (minor illusion, invisibility, disguise self)"], "source": "MTF" },
+        "Dispater": { "ability_bonus": { "dexterity": 1 }, "traits": ["Dispater Spells"], "source": "MTF" },
+        "Mammon": { "ability_bonus": {}, "traits": ["Mammon Spells"], "source": "MTF" },
+        "Levistus": { "ability_bonus": { "constitution": 1 }, "traits": ["Levistus Spells"], "source": "MTF" },
+        "Fierna": { "ability_bonus": { "wisdom": 1 }, "traits": ["Fierna Spells"], "source": "MTF" },
+        "Baalzebul": { "ability_bonus": {}, "traits": ["Baalzebul Spells"], "source": "MTF" },
+        "Mephistopheles": { "ability_bonus": { "intelligence": 1 }, "traits": ["Mephistopheles Spells"], "source": "MTF" },
+        "Asmodeus": { "ability_bonus": {}, "traits": ["Asmodeus Spells"], "source": "MTF" }
+      }
+    },
     "Aasimar": {
-      "source": "Volo's Guide to Monsters",
-      "ability_bonus": {
-        "charisma": 2
-      },
-      "traits": [
-        "Celestial Resistance",
-        "Healing Hands",
-        "Light Cantrip",
-        "Radiant Soul"
-      ],
-      "found_via": "manual"
+      "ability_bonus": { "charisma": 2, "wisdom": 1 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Celestial Resistance", "Celestial Legacy", "Healing Hands"],
+      "languages": ["Common", "Celestial"],
+      "subraces": {
+        "Protector": { "ability_bonus": { "wisdom": 1 }, "traits": ["Radiant Soul"], "source": "VGM" },
+        "Scourge": { "ability_bonus": { "constitution": 1 }, "traits": ["Radiant Consumption"], "source": "VGM" },
+        "Fallen": { "ability_bonus": { "strength": 1 }, "traits": ["Necrotic Shroud"], "source": "VGM" }
+      }
     },
     "Bugbear": {
-      "source": "Volo's Guide to Monsters",
-      "ability_bonus": {
-        "strength": 2,
-        "dexterity": 1
-      },
-      "traits": [
-        "Long-Limbed",
-        "Surprising",
-        "Sneaky"
-      ],
-      "found_via": "manual"
-    },
-    "Firbolg": {
-      "source": "Volo's Guide to Monsters",
-      "ability_bonus": {
-        "wisdom": 2,
-        "strength": 1
-      },
-      "traits": [
-        "Firbolg Magic",
-        "Hidden Step",
-        "Powerful Build",
-        "Speech of Beast and Leaf"
-      ],
-      "found_via": "manual"
-    },
-    "Goblin": {
-      "source": "Volo's Guide to Monsters",
-      "ability_bonus": {
-        "dexterity": 2,
-        "constitution": 1
-      },
-      "traits": [
-        "Darkvision 60 ft",
-        "Fury of the Small",
-        "Nimble Escape"
-      ],
-      "found_via": "manual"
-    },
-    "Hobgoblin": {
-      "source": "Volo's Guide to Monsters",
-      "ability_bonus": {
-        "constitution": 2,
-        "intelligence": 1
-      },
-      "traits": [
-        "Darkvision 60 ft",
-        "Martial Training",
-        "Saving Face"
-      ],
-      "found_via": "manual"
-    },
-    "Kenku": {
-      "source": "Volo's Guide to Monsters",
-      "ability_bonus": {
-        "dexterity": 2,
-        "wisdom": 1
-      },
-      "traits": [
-        "Expert Forgery",
-        "Mimicry"
-      ],
-      "found_via": "manual"
-    },
-    "Tabaxi": {
-      "source": "Volo's Guide to Monsters",
-      "ability_bonus": {
-        "dexterity": 2,
-        "charisma": 1
-      },
-      "traits": [
-        "Darkvision 60 ft",
-        "Feline Agility",
-        "Cat's Claws",
-        "Cat's Talent"
-      ],
-      "found_via": "manual"
-    },
-    "Tortle": {
-      "source": "Tortle Package",
-      "ability_bonus": {
-        "strength": 2,
-        "wisdom": 1
-      },
-      "traits": [
-        "Natural Armor",
-        "Shell Defense",
-        "Hold Breath"
-      ],
-      "found_via": "manual"
-    },
-    "Githyanki": {
-      "source": "Mordenkainen's Tome of Foes",
-      "ability_bonus": {
-        "strength": 2,
-        "intelligence": 1
-      },
-      "traits": [
-        "Astral Knowledge",
-        "Githyanki Psionics",
-        "Martial Prodigy"
-      ],
-      "found_via": "manual"
-    },
-    "Githzerai": {
-      "source": "Mordenkainen's Tome of Foes",
-      "ability_bonus": {
-        "wisdom": 2,
-        "intelligence": 1
-      },
-      "traits": [
-        "Githzerai Psionics",
-        "Monastic Training",
-        "Shield Discipline"
-      ],
-      "found_via": "manual"
-    },
-    "Aarakocra": {
-      "source": "Elemental Evil Player's Companion",
-      "ability_bonus": {
-        "dexterity": 2,
-        "wisdom": 1
-      },
-      "traits": [
-        "Flight",
-        "Talons"
-      ],
-      "found_via": "manual"
-    },
-    "Deep Gnome": {
-      "source": "Elemental Evil Player's Companion",
-      "ability_bonus": {
-        "intelligence": 2,
-        "dexterity": 1
-      },
-      "traits": [
-        "Superior Darkvision 120 ft",
-        "Gnome Cunning",
-        "Stone Camouflage"
-      ],
-      "found_via": "manual"
-    },
-    "Goliath": {
-      "source": "Elemental Evil Player's Companion",
-      "ability_bonus": {
-        "strength": 2,
-        "constitution": 1
-      },
-      "traits": [
-        "Natural Athlete",
-        "Powerful Build",
-        "Mountain Born"
-      ],
-      "found_via": "manual"
-    },
-    "Air Genasi": {
-      "source": "Elemental Evil Player's Companion",
-      "ability_bonus": {
-        "constitution": 2,
-        "dexterity": 1
-      },
-      "traits": [
-        "Unending Breath",
-        "Mingle with the Wind"
-      ],
-      "found_via": "manual"
-    },
-    "Earth Genasi": {
-      "source": "Elemental Evil Player's Companion",
-      "ability_bonus": {
-        "constitution": 2,
-        "strength": 1
-      },
-      "traits": [
-        "Earthwalk",
-        "Merge with Stone"
-      ],
-      "found_via": "manual"
-    },
-    "Fire Genasi": {
-      "source": "Elemental Evil Player's Companion",
-      "ability_bonus": {
-        "constitution": 2,
-        "intelligence": 1
-      },
-      "traits": [
-        "Darkvision 60 ft",
-        "Fire Resistance",
-        "Reach to the Blaze"
-      ],
-      "found_via": "manual"
-    },
-    "Water Genasi": {
-      "source": "Elemental Evil Player's Companion",
-      "ability_bonus": {
-        "constitution": 2,
-        "wisdom": 1
-      },
-      "traits": [
-        "Amphibious",
-        "Swim",
-        "Call to the Wave"
-      ],
-      "found_via": "manual"
+      "ability_bonus": { "strength": 2, "dexterity": 1 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Long-Limbed", "Surprise Attack", "Fitting"],
+      "languages": ["Common", "Goblin"],
+      "subraces": {}
     },
     "Changeling": {
-      "source": "Eberron: Rising from the Last War",
-      "ability_bonus": {
-        "charisma": 2
-      },
-      "traits": [
-        "Change Appearance",
-        "Unsettling Visage",
-        "Divergent Persona"
-      ],
-      "found_via": "manual"
+      "ability_bonus": { "charisma": 2 },
+      "speed": 30,
+      "traits": ["Shapechanger", "Changeling Instincts", "Unsettling Visage", "Divergent Persona"],
+      "languages": ["Common"],
+      "subraces": {}
+    },
+    "Deep Gnome": {
+      "ability_bonus": { "intelligence": 2, "dexterity": 1 },
+      "speed": 25,
+      "traits": ["Superior Darkvision 120 ft", "Stone Camouflage", "Svirfneblin Magic"],
+      "languages": ["Common", "Gnomish", "Undercommon"],
+      "subraces": {}
+    },
+    "Duergar": {
+      "ability_bonus": { "constitution": 2, "strength": 1 },
+      "speed": 25,
+      "traits": ["Superior Darkvision 120 ft", "Duergar Resilience", "Duergar Magic", "Sunlight Sensitivity"],
+      "languages": ["Common", "Dwarvish", "Undercommon"],
+      "subraces": {}
+    },
+    "Firbolg": {
+      "ability_bonus": { "wisdom": 2, "strength": 1 },
+      "speed": 30,
+      "traits": ["Firbolg Magic", "Hidden Step", "Powerful Build", "Speech of Beast and Leaf"],
+      "languages": ["Common", "Elvish", "Giant"],
+      "subraces": {}
+    },
+    "Genasi": {
+      "ability_bonus": { "constitution": 2 },
+      "speed": 30,
+      "traits": ["Elemental Resistance"],
+      "languages": ["Common", "Primordial"],
+      "subraces": {
+        "Air Genasi": { "ability_bonus": { "dexterity": 1 }, "traits": ["Unending Breath", "Mingle with the Wind", "Levitate at level 3"], "source": "EE" },
+        "Earth Genasi": { "ability_bonus": { "strength": 1 }, "traits": ["Earth Walk", "Merge with Stone", "Pass without Trace at level 3"], "source": "EE" },
+        "Fire Genasi": { "ability_bonus": { "intelligence": 1 }, "traits": ["Darkvision 60 ft", "Fire Resistance", "Reach to the Blaze", "Burning Hands at level 3"], "source": "EE" },
+        "Water Genasi": { "ability_bonus": { "wisdom": 1 }, "traits": ["Amphibious", "Acid Resistance", "Swim speed 30 ft", "Shape Water cantrip"], "source": "EE" }
+      }
+    },
+    "Gith": {
+      "ability_bonus": { "intelligence": 1 },
+      "speed": 30,
+      "traits": ["Astral Knowledge"],
+      "languages": ["Common", "Gith"],
+      "subraces": {
+        "Githyanki": { "ability_bonus": { "strength": 2 }, "traits": ["Martial Prodigy", "Githyanki Psionics"], "source": "MTF" },
+        "Githzerai": { "ability_bonus": { "wisdom": 2 }, "traits": ["Mental Discipline", "Githzerai Psionics"], "source": "MTF" }
+      }
+    },
+    "Goblin": {
+      "ability_bonus": { "dexterity": 2, "constitution": 1 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Fury of the Small", "Nimble Escape"],
+      "languages": ["Common", "Goblin"],
+      "subraces": {}
+    },
+    "Goliath": {
+      "ability_bonus": { "strength": 2, "constitution": 1 },
+      "speed": 30,
+      "traits": ["Natural Athlete", "Stone's Endurance", "Powerful Build", "Mountain Born"],
+      "languages": ["Common", "Giant"],
+      "subraces": {}
+    },
+    "Hobgoblin": {
+      "ability_bonus": { "constitution": 2, "intelligence": 1 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Martial Training", "Saving Face"],
+      "languages": ["Common", "Goblin"],
+      "subraces": {}
     },
     "Kalashtar": {
-      "source": "Eberron: Rising from the Last War",
-      "ability_bonus": {
-        "wisdom": 2,
-        "charisma": 1
-      },
-      "traits": [
-        "Dual Mind",
-        "Mental Discipline",
-        "Mind to Mind",
-        "Severed from Dreams"
-      ],
-      "found_via": "manual"
+      "ability_bonus": { "wisdom": 2, "charisma": 1 },
+      "speed": 30,
+      "traits": ["Dual Mind", "Mental Discipline", "Mind Link", "Severed from Dreams"],
+      "languages": ["Common", "Quori"],
+      "subraces": {}
     },
-    "Shifter": {
-      "source": "Eberron: Rising from the Last War",
-      "ability_bonus": {
-        "dexterity": 2
-      },
-      "traits": [
-        "Shifting (varies by subrace)"
-      ],
-      "found_via": "manual"
-    },
-    "Warforged": {
-      "source": "Eberron: Rising from the Last War",
-      "ability_bonus": {
-        "constitution": 2,
-        "strength": 1
-      },
-      "traits": [
-        "Composite Plating",
-        "Living Construct",
-        "Specialized Design"
-      ],
-      "found_via": "manual"
-    },
-    "Shadar-kai": {
-      "source": "Monsters of the Multiverse",
-      "ability_bonus": {
-        "dexterity": 2,
-        "constitution": 1
-      },
-      "traits": [
-        "Darkvision 120 ft",
-        "Necrotic Shroud",
-        "Blessing of the Raven Queen",
-        "Fey Ancestry"
-      ],
-      "found_via": "manual"
-    },
-    "Fairy": {
-      "source": "Monsters of the Multiverse",
-      "ability_bonus": {
-        "dexterity": 2,
-        "intelligence": 1
-      },
-      "traits": [
-        "Fairy Flight",
-        "Fey",
-        "Fairy Magic"
-      ],
-      "found_via": "manual"
-    },
-    "Owlfolk": {
-      "source": "Monsters of the Multiverse",
-      "ability_bonus": {
-        "wisdom": 2,
-        "dexterity": 1
-      },
-      "traits": [
-        "Darkvision 120 ft",
-        "Flight",
-        "Magic Sight",
-        "Silent Flight"
-      ],
-      "found_via": "manual"
-    },
-    "Harengon": {
-      "source": "Monsters of the Multiverse",
-      "ability_bonus": {
-        "dexterity": 2,
-        "wisdom": 1
-      },
-      "traits": [
-        "Rabbit Hop",
-        "Lucky Footwork",
-        "Hare-Triggered"
-      ],
-      "found_via": "manual"
+    "Kenku": {
+      "ability_bonus": { "dexterity": 2, "wisdom": 1 },
+      "speed": 30,
+      "traits": ["Kenku Training", "Expert Forgery", "Mimicry"],
+      "languages": ["Common", "Auran"],
+      "subraces": {}
     },
     "Kobold": {
-      "source": "Monsters of the Multiverse",
-      "ability_bonus": {
-        "dexterity": 2,
-        "strength": -2
-      },
-      "traits": [
-        "Darkvision 120 ft",
-        "Grovel Cower Beg",
-        "Pack Tactics"
-      ],
-      "found_via": "manual"
+      "ability_bonus": { "dexterity": 2, "strength": -2 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Pack Tactics", "Sunlight Sensitivity", "Grovel, Cower, and Beg"],
+      "languages": ["Common", "Draconic"],
+      "subraces": {}
     },
-    "Yuan-ti Pureblood": {
-      "source": "Monsters of the Multiverse",
-      "ability_bonus": {
-        "charisma": 2,
-        "intelligence": 1
-      },
-      "traits": [
-        "Darkvision 60 ft",
-        "Innate Spellcasting",
-        "Poison Immunity",
-        "Snake Charming"
-      ],
-      "found_via": "manual"
+    "Lizardfolk": {
+      "ability_bonus": { "constitution": 2, "wisdom": 1 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Bite", "Cunning Artisan", "Hold Breath", "Natural Armor", "Hungry Jaws"],
+      "languages": ["Common", "Draconic"],
+      "subraces": {}
+    },
+    "Loxodon": {
+      "ability_bonus": { "constitution": 2, "wisdom": 1 },
+      "speed": 30,
+      "traits": ["Loxodon Serenity", "Natural Armor (AC 12 + CON mod)", "Powerful Build", "Trunk"],
+      "languages": ["Common", "Loxodon"],
+      "subraces": {}
+    },
+    "Minotaur": {
+      "ability_bonus": { "strength": 2, "constitution": 1 },
+      "speed": 30,
+      "traits": ["Horns (1d6 piercing)", "Goring Rush", "Hammering Horns", "Imposing Presence"],
+      "languages": ["Common", "Minotaur"],
+      "subraces": {}
     },
     "Orc": {
-      "source": "Monsters of the Multiverse",
-      "ability_bonus": {
-        "strength": 2,
-        "constitution": 1
-      },
-      "traits": [
-        "Darkvision 60 ft",
-        "Adrenaline Rush",
-        "Powerful Build",
-        "Aggressive"
-      ],
-      "found_via": "manual"
+      "ability_bonus": { "strength": 2, "constitution": 1 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Aggressive", "Primal Intuition", "Powerful Build"],
+      "languages": ["Common", "Orc"],
+      "subraces": {}
     },
-    "Goblinoid": {
-      "source": "Monsters of the Multiverse",
-      "ability_bonus": {
-        "constitution": 2,
-        "dexterity": 1
-      },
-      "traits": [
-        "Darkvision 60 ft",
-        "Fury of the Small",
-        "Nimble Escape"
-      ],
-      "found_via": "manual"
+    "Orc of Eberron": {
+      "ability_bonus": { "strength": 2, "wisdom": 1 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Primal Intuition", "Powerful Build"],
+      "languages": ["Common", "Orc"],
+      "subraces": {}
     },
-    "Dhampir": {
-      "source": "Monsters of the Multiverse",
-      "ability_bonus": {
-        "charisma": 2,
-        "dexterity": 1
-      },
-      "traits": [
-        "Darkvision 60 ft",
-        "Vampiric Bite",
-        "Blood Feeding"
-      ],
-      "found_via": "manual"
+    "Satyr": {
+      "ability_bonus": { "dexterity": 2, "charisma": 1 },
+      "speed": 40,
+      "traits": ["Fey", "Magic Resistance", "Mirthful Leaps", "Reveler"],
+      "languages": ["Common", "Sylvan"],
+      "subraces": {}
     },
-    "Hexblood": {
-      "source": "Monsters of the Multiverse",
-      "ability_bonus": {
-        "charisma": 2,
-        "wisdom": 1
-      },
-      "traits": [
-        "Darkvision 60 ft",
-        "Hex Magic",
-        "Eerie Token"
-      ],
-      "found_via": "manual"
+    "Shifter": {
+      "ability_bonus": { "dexterity": 2 },
+      "speed": 30,
+      "traits": ["Shifting"],
+      "languages": ["Common"],
+      "subraces": {
+        "Beasthide": { "ability_bonus": { "constitution": 1 }, "traits": ["Shifting Feature: temporary HP + natural armor"], "source": "EGtW" },
+        "Longtooth": { "ability_bonus": { "strength": 1 }, "traits": ["Shifting Feature: bite attack"], "source": "EGtW" },
+        "Swiftstride": { "ability_bonus": { "dexterity": 1 }, "traits": ["Shifting Feature: speed boost + reaction shift"], "source": "EGtW" },
+        "Wildhunt": { "ability_bonus": { "wisdom": 1 }, "traits": ["Shifting Feature: advantage on Wisdom checks"], "source": "EGtW" }
+      }
     },
-    "Reborn": {
-      "source": "Monsters of the Multiverse",
-      "ability_bonus": {
-        "constitution": 2,
-        "dexterity": 1
-      },
-      "traits": [
-        "Deathless Nature",
-        "Knowledge from a Past Life"
-      ],
-      "found_via": "manual"
+    "Tabaxi": {
+      "ability_bonus": { "dexterity": 2, "charisma": 1 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Feline Agility", "Cat's Claws", "Cat's Talent"],
+      "languages": ["Common", "Tabaxi"],
+      "subraces": {}
     },
-    "Astral Elf": {
-      "source": "Monsters of the Multiverse",
-      "ability_bonus": {
-        "dexterity": 2,
-        "intelligence": 1
-      },
-      "traits": [
-        "Darkvision 60 ft",
-        "Astral Trance",
-        "Fey Ancestry",
-        "Starlight Step"
-      ],
-      "found_via": "manual"
+    "Tortle": {
+      "ability_bonus": { "strength": 2, "wisdom": 1 },
+      "speed": 30,
+      "traits": ["Natural Armor (AC 17)", "Shell Defense", "Hold Breath", "Survival Instinct", "Claws"],
+      "languages": ["Common", "Aquan"],
+      "subraces": {}
+    },
+    "Triton": {
+      "ability_bonus": { "strength": 1, "charisma": 2 },
+      "speed": 30,
+      "traits": ["Amphibious", "Emissary of the Sea", "Guardian of the Depths", "Darkvision 60 ft", "Swim speed 30 ft"],
+      "languages": ["Common", "Primordial"],
+      "subraces": {}
+    },
+    "Vedalken": {
+      "ability_bonus": { "intelligence": 2, "wisdom": 1 },
+      "speed": 30,
+      "traits": ["Vedalken Dispassion", "Tireless Precision", "Partially Amphibious"],
+      "languages": ["Common", "Vedalken"],
+      "subraces": {}
+    },
+    "Verdan": {
+      "ability_bonus": { "dexterity": 2, "charisma": 1 },
+      "speed": 30,
+      "traits": ["Telepathic", "Limited Telepathy", "Fortunate", "Adaptive"],
+      "languages": ["Common", "Goblin"],
+      "subraces": {}
+    },
+    "Warforged": {
+      "ability_bonus": { "constitution": 2, "strength": 1 },
+      "speed": 30,
+      "traits": ["Warforged Resilience", "Specialized Design", "Integrated Protection"],
+      "languages": ["Common"],
+      "subraces": {
+        "Envoy": { "ability_bonus": "two different ability scores +1 each", "traits": ["Specialized Design", "Integrated Tool"], "source": "EGtW" },
+        "Juggernaut": { "ability_bonus": { "strength": 1 }, "traits": ["Powerful Build", "Integrated Armor"], "source": "EGtW" },
+        "Skirmisher": { "ability_bonus": { "dexterity": 1 }, "traits": ["Light Step", "Swift"], "source": "EGtW" }
+      }
+    },
+    "Yuan-Ti Pureblood": {
+      "ability_bonus": { "charisma": 2, "intelligence": 1 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Innate Spellcasting", "Magic Resistance", "Poison Immunity"],
+      "languages": ["Common", "Abyssal", "Draconic"],
+      "subraces": {}
+    },
+    "Centaur": {
+      "ability_bonus": { "strength": 2, "wisdom": 1 },
+      "speed": 40,
+      "traits": ["Fey", "Charge", "Equine Build", "Hooves", "Natural Affinity"],
+      "languages": ["Common", "Sylvan"],
+      "subraces": {}
     },
     "Chitine": {
-      "source": "Monsters of the Multiverse",
-      "ability_bonus": {
-        "dexterity": 2,
-        "strength": 1
-      },
-      "traits": [
-        "Darkvision 60 ft",
-        "Spider Climb",
-        "Web"
-      ],
-      "found_via": "manual"
+      "ability_bonus": { "dexterity": 2, "wisdom": 1 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Spider Climb", "Web Spinner", "Chitin Armor"],
+      "languages": ["Common", "Undercommon"],
+      "subraces": {}
+    },
+    "Dhampir": {
+      "ability_bonus": { "charisma": 2, "dexterity": 1 },
+      "speed": 35,
+      "traits": ["Darkvision 60 ft", "Vampiric Bite", "Blood Feeding", "Spider Climb"],
+      "languages": ["Common"],
+      "subraces": {}
+    },
+    "Fairy": {
+      "ability_bonus": { "dexterity": 2, "intelligence": 1 },
+      "speed": 30,
+      "traits": ["Fey", "Fairy Flight (flight speed 30 ft)", "Fey Magic (faerie fire, enlarge/reduce)"],
+      "languages": ["Common", "Sylvan"],
+      "subraces": {}
+    },
+    "Harengon": {
+      "ability_bonus": { "dexterity": 2, "wisdom": 1 },
+      "speed": 30,
+      "traits": ["Rabbit Hop", "Lucky Footwork", "Perceptive"],
+      "languages": ["Common"],
+      "subraces": {}
+    },
+    "Hexblood": {
+      "ability_bonus": { "charisma": 2, "constitution": 1 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Hex Magic (disguise self, hex)", "Eerie Token", "Hag Legacy"],
+      "languages": ["Common", "Sylvan"],
+      "subraces": {}
+    },
+    "Lineages (Reborn)": {
+      "ability_bonus": { "constitution": 2, "dexterity": 1 },
+      "speed": 30,
+      "traits": ["Deathless Nature", "Knowledge from a Past Life"],
+      "languages": ["Common"],
+      "subraces": {}
+    },
+    "Owlin": {
+      "ability_bonus": { "dexterity": 2, "intelligence": 1 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Flight (flying speed 30 ft)", "Silent Feather"],
+      "languages": ["Common", "Auran"],
+      "subraces": {}
+    },
+    "Plasmoid": {
+      "ability_bonus": { "constitution": 2, "dexterity": 1 },
+      "speed": 30,
+      "traits": ["Amorphous", "Darkvision 60 ft", "Hold Breath", "Ooze Resilience", "Shape Self"],
+      "languages": ["Common", "Ooze"],
+      "subraces": {}
+    },
+    "Squirrelfolk": {
+      "ability_bonus": { "dexterity": 2, "charisma": 1 },
+      "speed": 30,
+      "traits": ["Darkvision 30 ft", "Nimble", "Squirrel's Cunning"],
+      "languages": ["Common"],
+      "subraces": {}
+    },
+    "Thri-kreen": {
+      "ability_bonus": { "dexterity": 2, "wisdom": 1 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Chameleon Carapace", "Secondary Arms", "Sleepless", "Telepathic"],
+      "languages": ["Common", "Thri-kreen"],
+      "subraces": {}
     },
     "Trilling": {
-      "source": "Tal'Dorei Reborn",
-      "ability_bonus": {
-        "charisma": 2,
-        "dexterity": 1
-      },
-      "traits": [
-        "Three Bodies",
-        "Trill Sight",
-        "Shifting Form"
-      ],
-      "found_via": "manual"
+      "ability_bonus": { "charisma": 2, "dexterity": 1 },
+      "speed": 30,
+      "traits": ["Three-Body", "Trilling Harmony", "Resonant Voice"],
+      "languages": ["Common", "Sylvan"],
+      "subraces": {}
     },
-    "Ogre": {
-      "source": "Tal'Dorei Reborn",
-      "ability_bonus": {
-        "strength": 2,
-        "constitution": 1
-      },
-      "traits": [
-        "Powerful Build",
-        "Big Emotions",
-        "Lunkheaded"
-      ],
-      "found_via": "manual"
+    "Aarakocra": {
+      "ability_bonus": { "dexterity": 2, "wisdom": 1 },
+      "speed": 25,
+      "traits": ["Flight (flying speed 50 ft)", "Talons (1d4 slashing)"],
+      "languages": ["Common", "Aarakocra"],
+      "subraces": {}
     },
-    "Orc of Exandria": {
-      "source": "Explorer's Guide to Wildemount",
-      "ability_bonus": {
-        "strength": 2,
-        "constitution": 1
-      },
-      "traits": [
-        "Darkvision 60 ft",
-        "Aggressive",
-        "Powerful Build",
-        "Primal Intuition"
-      ],
-      "found_via": "manual"
+    "Grung": {
+      "ability_bonus": { "dexterity": 2, "constitution": 1 },
+      "speed": 25,
+      "traits": ["Amphibious", "Poison Immunity", "Poisonous Skin", "Standing Leap"],
+      "languages": ["Common", "Grung"],
+      "subraces": {}
     },
-    "Pallid Elf": {
-      "source": "Explorer's Guide to Wildemount",
-      "ability_bonus": {
-        "dexterity": 2,
-        "constitution": 1
-      },
-      "traits": [
-        "Darkvision 60 ft",
-        "Fey Ancestry",
-        "Incisive Sense",
-        "Pallid Magic"
-      ],
-      "found_via": "manual"
+    "Locathah": {
+      "ability_bonus": { "strength": 2, "dexterity": 1 },
+      "speed": 30,
+      "traits": ["Natural Armor (AC 13 + DEX mod)", "Amphibious", "Limited Amphibiousness", "Observant & Lucky"],
+      "languages": ["Common", "Aquan"],
+      "subraces": {}
     },
-    "Feral Tiefling": {
-      "source": "Sword Coast Adventurer's Guide",
-      "ability_bonus": {
-        "intelligence": 1,
-        "charisma": 2
-      },
-      "traits": [
-        "Darkvision 60 ft",
-        "Hellish Resistance",
-        "Infernal Legacy (variant)"
-      ],
-      "found_via": "manual"
+    "Simic Hybrid": {
+      "ability_bonus": { "constitution": 2, "dexterity": 1 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Animal Enhancement"],
+      "languages": ["Common"],
+      "subraces": {}
     },
-    "Bariaur": {
-      "source": "Planescape: Adventures in the Multiverse",
-      "ability_bonus": {
-        "strength": 2,
-        "wisdom": 1
-      },
-      "traits": [
-        "Centaur Build",
-        "Charge",
-        "Natural Affinity"
-      ],
-      "found_via": "manual"
+    "Vampire Spawn": {
+      "ability_bonus": { "charisma": 2, "strength": 1 },
+      "speed": 30,
+      "traits": ["Darkvision 60 ft", "Vampire Regeneration", "Spider Climb", "Vampire Weaknesses"],
+      "languages": ["Common"],
+      "subraces": {}
     }
   }
 }

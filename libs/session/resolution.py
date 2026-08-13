@@ -772,20 +772,31 @@ class ResolutionMixin:
                         try:
                             from libs.ai.npc_spawn_engine import NpcSpawnEngine
                             spawn_engine = NpcSpawnEngine(db)
-                            spawn_result = spawn_engine.validate_spawn(occupation, loc_type)
+                            spawn_result = spawn_engine.validate_npc_spawn(
+                                npc_occupation=occupation,
+                                current_location_type=loc_type,
+                                current_location_name=args.get("location_name", ""),
+                            )
                             if not spawn_result.is_valid:
-                                # Auto-relocate to nearest valid location
-                                alt_loc = spawn_engine.get_nearest_valid_location(occupation, session_id)
-                                if alt_loc:
+                                # Try to find a valid alternative location
+                                allowed_types = spawn_result.suggested_locations
+                                relocated = False
+                                if allowed_types:
+                                    all_locs = db.get_locations(session_id)
+                                    for alt_l in all_locs:
+                                        alt_type = getattr(alt_l, 'type', '') or getattr(alt_l, 'location_type', '')
+                                        if alt_type.lower() in [t.lower() for t in allowed_types]:
+                                            loc_id = alt_l.id
+                                            logger.warning(
+                                                f"[NPC spawn] '{name}' ({occupation}) relocated from "
+                                                f"'{loc_type}' to '{alt_type}' — occupation-location mismatch"
+                                            )
+                                            relocated = True
+                                            break
+                                if not relocated:
                                     logger.warning(
-                                        f"[NPC spawn] '{name}' ({occupation}) relocated from "
-                                        f"'{loc_type}' to '{alt_loc.type}' — occupation-location mismatch"
-                                    )
-                                    loc_id = alt_loc.id
-                                else:
-                                    logger.warning(
-                                        f"[NPC spawn] '{name}' ({occupation}) at '{loc_type}' — "
-                                        f"no valid location found, allowing with warning"
+                                        f"[NPC spawn] '{name}' ({occupation}) at '{loc_type}' INVALID — "
+                                        f"{spawn_result.reason}. Allowing with warning."
                                     )
                         except Exception as e:
                             logger.warning(f"[NPC spawn] Validation failed (non-blocking): {e}")

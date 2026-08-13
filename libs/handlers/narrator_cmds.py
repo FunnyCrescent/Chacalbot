@@ -329,15 +329,11 @@ async def _process_dn_action(update: Update, ctx: ContextTypes.DEFAULT_TYPE, act
             return
 
         combat_group = sessions.get_combat_action_group(session.id)
-        blocked = combat_group.get("blocked_players", [])
-        if user.id in blocked:
-            current = combat_group.get("current", {})
-            current_name = current.get("name", "?")
-            await send_safe(update,
-                f"⚔️ Бой идёт! Не твой ход. Ждём: {current_name}"
-            )
-            return
-        # If it's an NPC turn, auto-resolve NPC turns first, then let the player act
+
+        # ── FIX: Check NPC turn FIRST, before blocking ──
+        # When it's an NPC's turn, ALL PCs are in blocked_players.
+        # If we check blocked first, we send "Не твой ход" and return,
+        # never reaching the auto-resolve path. NPC just stands AFK.
         if combat_group.get("npc_turn"):
             current = combat_group.get("current", {})
             current_name = current.get("name", "?")
@@ -364,6 +360,16 @@ async def _process_dn_action(update: Update, ctx: ContextTypes.DEFAULT_TYPE, act
                     f"⚔️ Сейчас ход NPC ({current_name}). Жди своей очереди."
                 )
                 return
+
+        # ── Now check if player is blocked (another PC's turn) ──
+        blocked = combat_group.get("blocked_players", [])
+        if user.id in blocked:
+            current = combat_group.get("current", {})
+            current_name = current.get("name", "?")
+            await send_safe(update,
+                f"⚔️ Бой идёт! Не твой ход. Ждём: {current_name}"
+            )
+            return
 
     char = db.get_character_by_player(user.id, session.id)
     char_name = char.name if char else player.display_name

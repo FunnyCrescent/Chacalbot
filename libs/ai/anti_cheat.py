@@ -226,7 +226,16 @@ class AntiCheatValidator:
         if self._classes_data is not None:
             return
         self._classes_data = _load_json("classes_5e_2014.json")
-        self._races_data = _load_json("races_5e_2014.json")
+        # Load extended races (40+ races from all official books) if available,
+        # otherwise fall back to PHB-only (9 races)
+        import os
+        extended_path = _SRD_DIR / "races_5e_extended.json"
+        if extended_path.exists():
+            self._races_data = _load_json("races_5e_extended.json")
+            logger.info(f"[anti-cheat] Loaded extended races (40+ races from all official books)")
+        else:
+            self._races_data = _load_json("races_5e_2014.json")
+            logger.info(f"[anti-cheat] Loaded PHB-only races (9 races)")
         self._backgrounds_data = _load_json("backgrounds_5e_2014.json")
         self._feats_data = _load_json("feats_5e_2014.json")
 

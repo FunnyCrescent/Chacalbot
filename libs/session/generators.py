@@ -222,20 +222,58 @@ class GeneratorsMixin:
             extracted_npcs = await self.dm.extract_all_npcs_from_lore(raw_text)
             existing_names_lower = {n.name.lower() for n in npcs}
             created_count = 0
+            skipped_spawn = 0
             for enpc in extracted_npcs:
                 name = (enpc.get("name") or "").strip()
                 if not name or name.lower() in existing_names_lower:
                     continue
                 loc_id = ""
                 loc_name = enpc.get("location_name", "")
+                loc_type = ""
                 if loc_name:
                     for l in locations:
                         if loc_name.lower() in l.name.lower() or l.name.lower() in loc_name.lower():
                             loc_id = l.id
+                            loc_type = getattr(l, 'type', '') or getattr(l, 'location_type', '')
                             break
+
+                # ── NPC SPAWN VALIDATION (occupation → location binding) ──
+                occupation = enpc.get("occupation", "")
+                if occupation and loc_type:
+                    try:
+                        from libs.ai.npc_spawn_engine import NpcSpawnEngine
+                        spawn_engine = NpcSpawnEngine(db)
+                        spawn_result = spawn_engine.validate_npc_spawn(
+                            npc_occupation=occupation,
+                            current_location_type=loc_type,
+                            current_location_name=loc_name,
+                        )
+                        if not spawn_result.is_valid:
+                            # Try relocating to a valid location
+                            allowed_types = spawn_result.suggested_locations
+                            relocated = False
+                            if allowed_types:
+                                for alt_l in locations:
+                                    alt_type = getattr(alt_l, 'type', '') or getattr(alt_l, 'location_type', '')
+                                    if alt_type.lower() in [t.lower() for t in allowed_types]:
+                                        loc_id = alt_l.id
+                                        logger.info(
+                                            f"[lore-npc] '{name}' ({occupation}) relocated from "
+                                            f"'{loc_type}' to '{alt_type}'"
+                                        )
+                                        relocated = True
+                                        break
+                            if not relocated:
+                                logger.warning(
+                                    f"[lore-npc] '{name}' ({occupation}) at '{loc_type}' invalid — "
+                                    f"allowing without relocation"
+                                )
+                    except Exception as e:
+                        logger.warning(f"[lore-npc] spawn validation failed (non-blocking): {e}")
+
                 db.create_npc(WorldNpc(
                     id=str(uuid.uuid4())[:8], session_id=session_id,
-                    name=name, race=enpc.get("race", ""), occupation=enpc.get("occupation", ""),
+                    name=name, race=enpc.get("race", ""), occupation=occupation,
                     location_id=loc_id, backstory=enpc.get("backstory", ""),
                     personality=json.dumps({"traits": enpc.get("personality", "")}),
                 ))
