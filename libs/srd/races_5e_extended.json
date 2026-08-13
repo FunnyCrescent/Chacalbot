@@ -1,0 +1,529 @@
+{
+  "_meta": {
+    "edition": "D&D 5e (Official Sourcebooks)",
+    "description": "All official races beyond PHB, from Volo, Mordenkainen, Elemental Evil, Eberron, Wildemount, Monsters of the Multiverse, Tal Dorei Reborn, etc."
+  },
+  "races": {
+    "Aasimar": {
+      "source": "Volo's Guide to Monsters",
+      "ability_bonus": {
+        "charisma": 2
+      },
+      "traits": [
+        "Celestial Resistance",
+        "Healing Hands",
+        "Light Cantrip",
+        "Radiant Soul"
+      ],
+      "found_via": "manual"
+    },
+    "Bugbear": {
+      "source": "Volo's Guide to Monsters",
+      "ability_bonus": {
+        "strength": 2,
+        "dexterity": 1
+      },
+      "traits": [
+        "Long-Limbed",
+        "Surprising",
+        "Sneaky"
+      ],
+      "found_via": "manual"
+    },
+    "Firbolg": {
+      "source": "Volo's Guide to Monsters",
+      "ability_bonus": {
+        "wisdom": 2,
+        "strength": 1
+      },
+      "traits": [
+        "Firbolg Magic",
+        "Hidden Step",
+        "Powerful Build",
+        "Speech of Beast and Leaf"
+      ],
+      "found_via": "manual"
+    },
+    "Goblin": {
+      "source": "Volo's Guide to Monsters",
+      "ability_bonus": {
+        "dexterity": 2,
+        "constitution": 1
+      },
+      "traits": [
+        "Darkvision 60 ft",
+        "Fury of the Small",
+        "Nimble Escape"
+      ],
+      "found_via": "manual"
+    },
+    "Hobgoblin": {
+      "source": "Volo's Guide to Monsters",
+      "ability_bonus": {
+        "constitution": 2,
+        "intelligence": 1
+      },
+      "traits": [
+        "Darkvision 60 ft",
+        "Martial Training",
+        "Saving Face"
+      ],
+      "found_via": "manual"
+    },
+    "Kenku": {
+      "source": "Volo's Guide to Monsters",
+      "ability_bonus": {
+        "dexterity": 2,
+        "wisdom": 1
+      },
+      "traits": [
+        "Expert Forgery",
+        "Mimicry"
+      ],
+      "found_via": "manual"
+    },
+    "Tabaxi": {
+      "source": "Volo's Guide to Monsters",
+      "ability_bonus": {
+        "dexterity": 2,
+        "charisma": 1
+      },
+      "traits": [
+        "Darkvision 60 ft",
+        "Feline Agility",
+        "Cat's Claws",
+        "Cat's Talent"
+      ],
+      "found_via": "manual"
+    },
+    "Tortle": {
+      "source": "Tortle Package",
+      "ability_bonus": {
+        "strength": 2,
+        "wisdom": 1
+      },
+      "traits": [
+        "Natural Armor",
+        "Shell Defense",
+        "Hold Breath"
+      ],
+      "found_via": "manual"
+    },
+    "Githyanki": {
+      "source": "Mordenkainen's Tome of Foes",
+      "ability_bonus": {
+        "strength": 2,
+        "intelligence": 1
+      },
+      "traits": [
+        "Astral Knowledge",
+        "Githyanki Psionics",
+        "Martial Prodigy"
+      ],
+      "found_via": "manual"
+    },
+    "Githzerai": {
+      "source": "Mordenkainen's Tome of Foes",
+      "ability_bonus": {
+        "wisdom": 2,
+        "intelligence": 1
+      },
+      "traits": [
+        "Githzerai Psionics",
+        "Monastic Training",
+        "Shield Discipline"
+      ],
+      "found_via": "manual"
+    },
+    "Aarakocra": {
+      "source": "Elemental Evil Player's Companion",
+      "ability_bonus": {
+        "dexterity": 2,
+        "wisdom": 1
+      },
+      "traits": [
+        "Flight",
+        "Talons"
+      ],
+      "found_via": "manual"
+    },
+    "Deep Gnome": {
+      "source": "Elemental Evil Player's Companion",
+      "ability_bonus": {
+        "intelligence": 2,
+        "dexterity": 1
+      },
+      "traits": [
+        "Superior Darkvision 120 ft",
+        "Gnome Cunning",
+        "Stone Camouflage"
+      ],
+      "found_via": "manual"
+    },
+    "Goliath": {
+      "source": "Elemental Evil Player's Companion",
+      "ability_bonus": {
+        "strength": 2,
+        "constitution": 1
+      },
+      "traits": [
+        "Natural Athlete",
+        "Powerful Build",
+        "Mountain Born"
+      ],
+      "found_via": "manual"
+    },
+    "Air Genasi": {
+      "source": "Elemental Evil Player's Companion",
+      "ability_bonus": {
+        "constitution": 2,
+        "dexterity": 1
+      },
+      "traits": [
+        "Unending Breath",
+        "Mingle with the Wind"
+      ],
+      "found_via": "manual"
+    },
+    "Earth Genasi": {
+      "source": "Elemental Evil Player's Companion",
+      "ability_bonus": {
+        "constitution": 2,
+        "strength": 1
+      },
+      "traits": [
+        "Earthwalk",
+        "Merge with Stone"
+      ],
+      "found_via": "manual"
+    },
+    "Fire Genasi": {
+      "source": "Elemental Evil Player's Companion",
+      "ability_bonus": {
+        "constitution": 2,
+        "intelligence": 1
+      },
+      "traits": [
+        "Darkvision 60 ft",
+        "Fire Resistance",
+        "Reach to the Blaze"
+      ],
+      "found_via": "manual"
+    },
+    "Water Genasi": {
+      "source": "Elemental Evil Player's Companion",
+      "ability_bonus": {
+        "constitution": 2,
+        "wisdom": 1
+      },
+      "traits": [
+        "Amphibious",
+        "Swim",
+        "Call to the Wave"
+      ],
+      "found_via": "manual"
+    },
+    "Changeling": {
+      "source": "Eberron: Rising from the Last War",
+      "ability_bonus": {
+        "charisma": 2
+      },
+      "traits": [
+        "Change Appearance",
+        "Unsettling Visage",
+        "Divergent Persona"
+      ],
+      "found_via": "manual"
+    },
+    "Kalashtar": {
+      "source": "Eberron: Rising from the Last War",
+      "ability_bonus": {
+        "wisdom": 2,
+        "charisma": 1
+      },
+      "traits": [
+        "Dual Mind",
+        "Mental Discipline",
+        "Mind to Mind",
+        "Severed from Dreams"
+      ],
+      "found_via": "manual"
+    },
+    "Shifter": {
+      "source": "Eberron: Rising from the Last War",
+      "ability_bonus": {
+        "dexterity": 2
+      },
+      "traits": [
+        "Shifting (varies by subrace)"
+      ],
+      "found_via": "manual"
+    },
+    "Warforged": {
+      "source": "Eberron: Rising from the Last War",
+      "ability_bonus": {
+        "constitution": 2,
+        "strength": 1
+      },
+      "traits": [
+        "Composite Plating",
+        "Living Construct",
+        "Specialized Design"
+      ],
+      "found_via": "manual"
+    },
+    "Shadar-kai": {
+      "source": "Monsters of the Multiverse",
+      "ability_bonus": {
+        "dexterity": 2,
+        "constitution": 1
+      },
+      "traits": [
+        "Darkvision 120 ft",
+        "Necrotic Shroud",
+        "Blessing of the Raven Queen",
+        "Fey Ancestry"
+      ],
+      "found_via": "manual"
+    },
+    "Fairy": {
+      "source": "Monsters of the Multiverse",
+      "ability_bonus": {
+        "dexterity": 2,
+        "intelligence": 1
+      },
+      "traits": [
+        "Fairy Flight",
+        "Fey",
+        "Fairy Magic"
+      ],
+      "found_via": "manual"
+    },
+    "Owlfolk": {
+      "source": "Monsters of the Multiverse",
+      "ability_bonus": {
+        "wisdom": 2,
+        "dexterity": 1
+      },
+      "traits": [
+        "Darkvision 120 ft",
+        "Flight",
+        "Magic Sight",
+        "Silent Flight"
+      ],
+      "found_via": "manual"
+    },
+    "Harengon": {
+      "source": "Monsters of the Multiverse",
+      "ability_bonus": {
+        "dexterity": 2,
+        "wisdom": 1
+      },
+      "traits": [
+        "Rabbit Hop",
+        "Lucky Footwork",
+        "Hare-Triggered"
+      ],
+      "found_via": "manual"
+    },
+    "Kobold": {
+      "source": "Monsters of the Multiverse",
+      "ability_bonus": {
+        "dexterity": 2,
+        "strength": -2
+      },
+      "traits": [
+        "Darkvision 120 ft",
+        "Grovel Cower Beg",
+        "Pack Tactics"
+      ],
+      "found_via": "manual"
+    },
+    "Yuan-ti Pureblood": {
+      "source": "Monsters of the Multiverse",
+      "ability_bonus": {
+        "charisma": 2,
+        "intelligence": 1
+      },
+      "traits": [
+        "Darkvision 60 ft",
+        "Innate Spellcasting",
+        "Poison Immunity",
+        "Snake Charming"
+      ],
+      "found_via": "manual"
+    },
+    "Orc": {
+      "source": "Monsters of the Multiverse",
+      "ability_bonus": {
+        "strength": 2,
+        "constitution": 1
+      },
+      "traits": [
+        "Darkvision 60 ft",
+        "Adrenaline Rush",
+        "Powerful Build",
+        "Aggressive"
+      ],
+      "found_via": "manual"
+    },
+    "Goblinoid": {
+      "source": "Monsters of the Multiverse",
+      "ability_bonus": {
+        "constitution": 2,
+        "dexterity": 1
+      },
+      "traits": [
+        "Darkvision 60 ft",
+        "Fury of the Small",
+        "Nimble Escape"
+      ],
+      "found_via": "manual"
+    },
+    "Dhampir": {
+      "source": "Monsters of the Multiverse",
+      "ability_bonus": {
+        "charisma": 2,
+        "dexterity": 1
+      },
+      "traits": [
+        "Darkvision 60 ft",
+        "Vampiric Bite",
+        "Blood Feeding"
+      ],
+      "found_via": "manual"
+    },
+    "Hexblood": {
+      "source": "Monsters of the Multiverse",
+      "ability_bonus": {
+        "charisma": 2,
+        "wisdom": 1
+      },
+      "traits": [
+        "Darkvision 60 ft",
+        "Hex Magic",
+        "Eerie Token"
+      ],
+      "found_via": "manual"
+    },
+    "Reborn": {
+      "source": "Monsters of the Multiverse",
+      "ability_bonus": {
+        "constitution": 2,
+        "dexterity": 1
+      },
+      "traits": [
+        "Deathless Nature",
+        "Knowledge from a Past Life"
+      ],
+      "found_via": "manual"
+    },
+    "Astral Elf": {
+      "source": "Monsters of the Multiverse",
+      "ability_bonus": {
+        "dexterity": 2,
+        "intelligence": 1
+      },
+      "traits": [
+        "Darkvision 60 ft",
+        "Astral Trance",
+        "Fey Ancestry",
+        "Starlight Step"
+      ],
+      "found_via": "manual"
+    },
+    "Chitine": {
+      "source": "Monsters of the Multiverse",
+      "ability_bonus": {
+        "dexterity": 2,
+        "strength": 1
+      },
+      "traits": [
+        "Darkvision 60 ft",
+        "Spider Climb",
+        "Web"
+      ],
+      "found_via": "manual"
+    },
+    "Trilling": {
+      "source": "Tal'Dorei Reborn",
+      "ability_bonus": {
+        "charisma": 2,
+        "dexterity": 1
+      },
+      "traits": [
+        "Three Bodies",
+        "Trill Sight",
+        "Shifting Form"
+      ],
+      "found_via": "manual"
+    },
+    "Ogre": {
+      "source": "Tal'Dorei Reborn",
+      "ability_bonus": {
+        "strength": 2,
+        "constitution": 1
+      },
+      "traits": [
+        "Powerful Build",
+        "Big Emotions",
+        "Lunkheaded"
+      ],
+      "found_via": "manual"
+    },
+    "Orc of Exandria": {
+      "source": "Explorer's Guide to Wildemount",
+      "ability_bonus": {
+        "strength": 2,
+        "constitution": 1
+      },
+      "traits": [
+        "Darkvision 60 ft",
+        "Aggressive",
+        "Powerful Build",
+        "Primal Intuition"
+      ],
+      "found_via": "manual"
+    },
+    "Pallid Elf": {
+      "source": "Explorer's Guide to Wildemount",
+      "ability_bonus": {
+        "dexterity": 2,
+        "constitution": 1
+      },
+      "traits": [
+        "Darkvision 60 ft",
+        "Fey Ancestry",
+        "Incisive Sense",
+        "Pallid Magic"
+      ],
+      "found_via": "manual"
+    },
+    "Feral Tiefling": {
+      "source": "Sword Coast Adventurer's Guide",
+      "ability_bonus": {
+        "intelligence": 1,
+        "charisma": 2
+      },
+      "traits": [
+        "Darkvision 60 ft",
+        "Hellish Resistance",
+        "Infernal Legacy (variant)"
+      ],
+      "found_via": "manual"
+    },
+    "Bariaur": {
+      "source": "Planescape: Adventures in the Multiverse",
+      "ability_bonus": {
+        "strength": 2,
+        "wisdom": 1
+      },
+      "traits": [
+        "Centaur Build",
+        "Charge",
+        "Natural Affinity"
+      ],
+      "found_via": "manual"
+    }
+  }
+}

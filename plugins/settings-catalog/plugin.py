@@ -25,10 +25,10 @@ class SettingsCatalogPlugin(Plugin):
 
     async def setup(self, app: Application, ctx) -> None:
         app.add_handler(CommandHandler("categori", categori_cmd))
-        app.add_handler(CommandHandler("categori_add", categori_add_cmd))
+        app.add_handler(CommandHandler("categoriychwanegu", categori_add_cmd))
         app.add_handler(CommandHandler("dyfroddi", dyfroddi_cmd))
         app.add_handler(CommandHandler("dndcychwyn", dndstart_cmd))
-        app.add_handler(CommandHandler("setcurrency", setcurrency_cmd))
+        app.add_handler(CommandHandler("gosodarian", setcurrency_cmd))
         app.add_handler(CallbackQueryHandler(
             _categori_callback,
             pattern=r"^(cat:|set:|sel:|start:|genworld:)",

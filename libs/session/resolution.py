@@ -757,12 +757,39 @@ class ResolutionMixin:
 
                     npc_id = str(uuid.uuid4())[:8]
                     loc_id = ""
+                    loc_type = ""
+                    occupation = args.get("occupation", "")
                     if args.get("location_name"):
                         locs = db.get_locations(session_id)
                         for l in locs:
                             if args["location_name"].lower() in l.name.lower():
                                 loc_id = l.id
+                                loc_type = getattr(l, 'type', '') or getattr(l, 'location_type', '')
                                 break
+
+                    # ── NPC SPAWN VALIDATION (occupation → location binding) ──
+                    if occupation and loc_type:
+                        try:
+                            from libs.ai.npc_spawn_engine import NpcSpawnEngine
+                            spawn_engine = NpcSpawnEngine(db)
+                            spawn_result = spawn_engine.validate_spawn(occupation, loc_type)
+                            if not spawn_result.is_valid:
+                                # Auto-relocate to nearest valid location
+                                alt_loc = spawn_engine.get_nearest_valid_location(occupation, session_id)
+                                if alt_loc:
+                                    logger.warning(
+                                        f"[NPC spawn] '{name}' ({occupation}) relocated from "
+                                        f"'{loc_type}' to '{alt_loc.type}' — occupation-location mismatch"
+                                    )
+                                    loc_id = alt_loc.id
+                                else:
+                                    logger.warning(
+                                        f"[NPC spawn] '{name}' ({occupation}) at '{loc_type}' — "
+                                        f"no valid location found, allowing with warning"
+                                    )
+                        except Exception as e:
+                            logger.warning(f"[NPC spawn] Validation failed (non-blocking): {e}")
+
                     db.create_npc(WorldNpc(
                         id=npc_id, session_id=session_id,
                         name=name,

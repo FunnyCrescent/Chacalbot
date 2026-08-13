@@ -178,6 +178,26 @@ async def _process_character_upload(update: Update, ctx: ContextTypes.DEFAULT_TY
             await send_safe(update, "❌ Не удалось распарсить лист персонажа.")
             return
 
+        # === SRD ANTI-CHEAT VALIDATION (race/class/background) ===
+        try:
+            srd_result = dm_engine.validate_character_srd(parsed)
+            if srd_result and not srd_result.is_valid:
+                warnings_text = []
+                for r in [srd_result.race_result, srd_result.class_result,
+                          srd_result.background_result, srd_result.backstory_result]:
+                    if r and not r.is_valid:
+                        warnings_text.append(f"⚠️ {r.message}")
+                if warnings_text:
+                    await send_safe(update,
+                        f"⚠️ **SRD проверки:**\n\n" +
+                        "\n".join(warnings_text[:5]) +
+                        "\n\n📝 *Персонаж добавлен, но DM может проверить.*"
+                    )
+            elif srd_result and srd_result.is_valid:
+                await send_safe(update, "✅ SRD проверка пройдена: раса, класс, предыстория в норме.")
+        except Exception as e:
+            logger.warning(f"SRD validation failed (non-blocking): {e}")
+
         if is_dm:
             # ── DM mode: save to global saved_chars_db ──
             # Serialize parsed data for instant restore later (no AI re-parse)
@@ -530,6 +550,25 @@ async def _apply_saved_char_to_session(update: Update, query, user, session,
                 parse_mode="HTML",
             )
             return
+
+    # === SRD ANTI-CHEAT VALIDATION (race/class/background) ===
+    try:
+        srd_result = dm_engine.validate_character_srd(parsed)
+        if srd_result and not srd_result.is_valid:
+            warnings_text = []
+            for r in [srd_result.race_result, srd_result.class_result,
+                      srd_result.background_result, srd_result.backstory_result]:
+                if r and not r.is_valid:
+                    warnings_text.append(f"⚠️ {r.message}")
+            if warnings_text:
+                await query.edit_message_text(
+                    "⚠️ SRD проверки:\n\n" +
+                    "\n".join(warnings_text[:5]) +
+                    "\n\n📝 Персонаж добавлен, но DM может проверить.",
+                    parse_mode="HTML",
+                )
+    except Exception as e:
+        logger.warning(f"SRD validation on saved-char apply failed (non-blocking): {e}")
 
     # Save to session
     db.save_character_sheet(session.id, user.id, sheet_text, "saved_upload")

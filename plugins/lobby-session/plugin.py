@@ -25,7 +25,7 @@ class LobbySessionPlugin(Plugin):
 
     async def setup(self, app: Application, ctx) -> None:
         app.add_handler(CommandHandler("dechrau", start_cmd))
-        app.add_handler(CommandHandler("help", help_cmd))
+        app.add_handler(CommandHandler("cymorth", help_cmd))
         app.add_handler(CommandHandler("newydd", new_cmd))
         app.add_handler(CommandHandler("ymuno", join_cmd))
         app.add_handler(CommandHandler("gadael", leave_cmd))
