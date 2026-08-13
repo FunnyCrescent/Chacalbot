@@ -1,0 +1,574 @@
+{
+  "_meta": {
+    "edition": "D&D 5e (2014 PHB)",
+    "description": "All 12 PHB classes with subclasses, hit dice, saving throws, and spellcasting info"
+  },
+  "classes": {
+    "Barbarian": {
+      "hit_dice": "d12",
+      "saving_throws": [
+        "strength",
+        "constitution"
+      ],
+      "spellcasting": null,
+      "primary_ability": "strength",
+      "subclass_feature_level": 3,
+      "subclasses": {
+        "Path of the Berserker": {
+          "source": "PHB",
+          "features": [
+            "Frenzy",
+            "Mindless Rage",
+            "Intimidating Presence",
+            "Retaliation"
+          ]
+        },
+        "Path of the Totem Warrior": {
+          "source": "PHB",
+          "features": [
+            "Spirit Seeker",
+            "Totem Spirit",
+            "Spirit Walker",
+            "Totemic Attunement"
+          ]
+        }
+      }
+    },
+    "Bard": {
+      "hit_dice": "d8",
+      "saving_throws": [
+        "dexterity",
+        "charisma"
+      ],
+      "spellcasting": {
+        "ability": "charisma",
+        "spell_list": "bard",
+        "ritual_casting": false,
+        "prepared": false
+      },
+      "primary_ability": "charisma",
+      "subclass_feature_level": 3,
+      "subclasses": {
+        "College of Lore": {
+          "source": "PHB",
+          "features": [
+            "Bonus Proficiencies",
+            "Cutting Words",
+            "Additional Magical Secrets",
+            "Peerless Skill"
+          ]
+        },
+        "College of Valor": {
+          "source": "PHB",
+          "features": [
+            "Bonus Proficiencies",
+            "Combat Inspiration",
+            "Extra Attack",
+            "Battle Magic"
+          ]
+        }
+      }
+    },
+    "Cleric": {
+      "hit_dice": "d8",
+      "saving_throws": [
+        "wisdom",
+        "charisma"
+      ],
+      "spellcasting": {
+        "ability": "wisdom",
+        "spell_list": "cleric",
+        "ritual_casting": true,
+        "prepared": true
+      },
+      "primary_ability": "wisdom",
+      "subclass_feature_level": 1,
+      "subclasses": {
+        "Knowledge Domain": {
+          "source": "PHB",
+          "features": [
+            "Blessings of Knowledge",
+            "Channel Divinity: Arcane Abjuration"
+          ]
+        },
+        "Life Domain": {
+          "source": "PHB",
+          "features": [
+            "Disciple of Life",
+            "Channel Divinity: Preserve Life",
+            "Blessed Healer",
+            "Divine Strike"
+          ]
+        },
+        "Light Domain": {
+          "source": "PHB",
+          "features": [
+            "Bonus Cantrip",
+            "Warding Flare",
+            "Channel Divinity: Radiance of the Dawn"
+          ]
+        },
+        "Nature Domain": {
+          "source": "PHB",
+          "features": [
+            "Acolyte of Nature",
+            "Bonus Proficiency",
+            "Channel Divinity: Charm Animals and Plants"
+          ]
+        },
+        "Tempest Domain": {
+          "source": "PHB",
+          "features": [
+            "Wrath of the Storm",
+            "Channel Divinity: Destructive Wrath",
+            "Thunderbolt Strike"
+          ]
+        },
+        "Trickery Domain": {
+          "source": "PHB",
+          "features": [
+            "Channel Divinity: Invoke Duplicity",
+            "Channel Divinity: Cloak of Shadows"
+          ]
+        },
+        "War Domain": {
+          "source": "PHB",
+          "features": [
+            "War Priest",
+            "Channel Divinity: Guided Strike",
+            "Channel Divinity: War God Blessing"
+          ]
+        }
+      }
+    },
+    "Druid": {
+      "hit_dice": "d8",
+      "saving_throws": [
+        "intelligence",
+        "wisdom"
+      ],
+      "spellcasting": {
+        "ability": "wisdom",
+        "spell_list": "druid",
+        "ritual_casting": true,
+        "prepared": true
+      },
+      "primary_ability": "wisdom",
+      "subclass_feature_level": 2,
+      "subclasses": {
+        "Circle of the Land": {
+          "source": "PHB",
+          "features": [
+            "Natural Recovery",
+            "Circle Spells",
+            "Land Stride",
+            "Nature Ward",
+            "Nature Sanctuary"
+          ]
+        },
+        "Circle of the Moon": {
+          "source": "PHB",
+          "features": [
+            "Combat Wild Shape",
+            "Circle Forms",
+            "Primal Strike",
+            "Elemental Wild Shape",
+            "Thousand Forms"
+          ]
+        }
+      }
+    },
+    "Fighter": {
+      "hit_dice": "d10",
+      "saving_throws": [
+        "strength",
+        "constitution"
+      ],
+      "spellcasting": null,
+      "primary_ability": "strength",
+      "subclass_feature_level": 3,
+      "subclasses": {
+        "Champion": {
+          "source": "PHB",
+          "features": [
+            "Improved Critical",
+            "Remarkable Athlete",
+            "Additional Fighting Style",
+            "Superior Critical"
+          ]
+        },
+        "Battle Master": {
+          "source": "PHB",
+          "features": [
+            "Combat Superiority",
+            "Student of War",
+            "Know Your Enemy",
+            "Relentless"
+          ]
+        },
+        "Eldritch Knight": {
+          "source": "PHB",
+          "features": [
+            "Spellcasting",
+            "War Magic",
+            "Eldritch Strike",
+            "Arcane Charge",
+            "Improved War Magic"
+          ],
+          "spellcasting": {
+            "ability": "intelligence",
+            "spell_list": "wizard",
+            "tradition": "abjuration/evocation"
+          }
+        }
+      }
+    },
+    "Monk": {
+      "hit_dice": "d8",
+      "saving_throws": [
+        "strength",
+        "dexterity"
+      ],
+      "spellcasting": null,
+      "primary_ability": "dexterity",
+      "subclass_feature_level": 3,
+      "subclasses": {
+        "Way of the Open Hand": {
+          "source": "PHB",
+          "features": [
+            "Open Hand Technique",
+            "Wholeness of Body",
+            "Tranquility",
+            "Quivering Palm"
+          ]
+        },
+        "Way of the Shadow": {
+          "source": "PHB",
+          "features": [
+            "Shadow Arts",
+            "Shadow Step",
+            "Cloak of Shadows",
+            "Opportunist"
+          ]
+        },
+        "Way of the Four Elements": {
+          "source": "PHB",
+          "features": [
+            "Disciple of the Elements",
+            "Elemental Disciplines"
+          ]
+        }
+      }
+    },
+    "Paladin": {
+      "hit_dice": "d10",
+      "saving_throws": [
+        "wisdom",
+        "charisma"
+      ],
+      "spellcasting": {
+        "ability": "charisma",
+        "spell_list": "paladin",
+        "ritual_casting": false,
+        "prepared": true
+      },
+      "primary_ability": "strength",
+      "subclass_feature_level": 3,
+      "subclasses": {
+        "Oath of Devotion": {
+          "source": "PHB",
+          "features": [
+            "Channel Divinity: Sacred Weapon",
+            "Channel Divinity: Turn the Unholy",
+            "Aura of Devotion",
+            "Purity of Spirit",
+            "Holy Nimbus"
+          ]
+        },
+        "Oath of the Ancients": {
+          "source": "PHB",
+          "features": [
+            "Channel Divinity: Nature Wrath",
+            "Channel Divinity: Turn the Faithless",
+            "Aura of Warding",
+            "Undying Sentinel",
+            "Elder Champion"
+          ]
+        },
+        "Oath of Vengeance": {
+          "source": "PHB",
+          "features": [
+            "Channel Divinity: Abjure Enemy",
+            "Channel Divinity: Vow of Enmity",
+            "Relentless Avenger",
+            "Soul of Vengeance",
+            "Avenging Angel"
+          ]
+        }
+      }
+    },
+    "Ranger": {
+      "hit_dice": "d10",
+      "saving_throws": [
+        "strength",
+        "dexterity"
+      ],
+      "spellcasting": {
+        "ability": "wisdom",
+        "spell_list": "ranger",
+        "ritual_casting": false,
+        "prepared": false
+      },
+      "primary_ability": "dexterity",
+      "subclass_feature_level": 3,
+      "subclasses": {
+        "Hunter": {
+          "source": "PHB",
+          "features": [
+            "Hunter Prey",
+            "Defensive Tactics",
+            "Multiattack",
+            "Superior Hunter Defense"
+          ]
+        },
+        "Beast Master": {
+          "source": "PHB",
+          "features": [
+            "Ranger Companion",
+            "Exceptional Trainer",
+            "Bestial Fury",
+            "Superior Beast Defense"
+          ]
+        }
+      }
+    },
+    "Rogue": {
+      "hit_dice": "d8",
+      "saving_throws": [
+        "dexterity",
+        "intelligence"
+      ],
+      "spellcasting": null,
+      "primary_ability": "dexterity",
+      "subclass_feature_level": 3,
+      "subclasses": {
+        "Thief": {
+          "source": "PHB",
+          "features": [
+            "Fast Hands",
+            "Second-Story Work",
+            "Supreme Sneak",
+            "Use Magic Device",
+            "Thief Reflexes"
+          ]
+        },
+        "Assassin": {
+          "source": "PHB",
+          "features": [
+            "Assassinate",
+            "Infiltration Expertise",
+            "Impostor",
+            "Death Strike"
+          ]
+        },
+        "Arcane Trickster": {
+          "source": "PHB",
+          "features": [
+            "Mage Hand Legerdemain",
+            "Spellcasting",
+            "Magical Ambush",
+            "Versatile Trickster",
+            "Spell Thief"
+          ],
+          "spellcasting": {
+            "ability": "intelligence",
+            "spell_list": "wizard",
+            "tradition": "enchantment/illusion"
+          }
+        }
+      }
+    },
+    "Sorcerer": {
+      "hit_dice": "d6",
+      "saving_throws": [
+        "constitution",
+        "charisma"
+      ],
+      "spellcasting": {
+        "ability": "charisma",
+        "spell_list": "sorcerer",
+        "ritual_casting": false,
+        "prepared": false
+      },
+      "primary_ability": "charisma",
+      "subclass_feature_level": 1,
+      "subclasses": {
+        "Draconic Bloodline": {
+          "source": "PHB",
+          "features": [
+            "Dragon Ancestor",
+            "Draconic Resilience",
+            "Elemental Affinity",
+            "Dragon Wings",
+            "Dragon Presence"
+          ]
+        },
+        "Wild Magic": {
+          "source": "PHB",
+          "features": [
+            "Wild Magic Surge",
+            "Tides of Chaos",
+            "Bend Luck",
+            "Controlled Chaos",
+            "Spell Bomb"
+          ]
+        }
+      }
+    },
+    "Warlock": {
+      "hit_dice": "d8",
+      "saving_throws": [
+        "wisdom",
+        "charisma"
+      ],
+      "spellcasting": {
+        "ability": "charisma",
+        "spell_list": "warlock",
+        "ritual_casting": false,
+        "pact_magic": true
+      },
+      "primary_ability": "charisma",
+      "subclass_feature_level": 1,
+      "subclasses": {
+        "The Archfey": {
+          "source": "PHB",
+          "features": [
+            "Fey Presence",
+            "Misty Escape",
+            "Beguiling Defenses",
+            "Dark Delirium"
+          ]
+        },
+        "The Fiend": {
+          "source": "PHB",
+          "features": [
+            "Dark One Blessing",
+            "Dark One Own Luck",
+            "Fiendish Resilience",
+            "Hurl Through Hell"
+          ]
+        },
+        "The Great Old One": {
+          "source": "PHB",
+          "features": [
+            "Awakened Mind",
+            "Entropic Ward",
+            "Thought Shield",
+            "Create Thrall"
+          ]
+        }
+      },
+      "pact_boons": [
+        "Pact of the Chain",
+        "Pact of the Blade",
+        "Pact of the Tome"
+      ]
+    },
+    "Wizard": {
+      "hit_dice": "d6",
+      "saving_throws": [
+        "intelligence",
+        "wisdom"
+      ],
+      "spellcasting": {
+        "ability": "intelligence",
+        "spell_list": "wizard",
+        "ritual_casting": true,
+        "spellbook": true,
+        "prepared": true
+      },
+      "primary_ability": "intelligence",
+      "subclass_feature_level": 2,
+      "subclasses": {
+        "School of Abjuration": {
+          "source": "PHB",
+          "features": [
+            "Arcane Ward",
+            "Abjuration Savant",
+            "Projected Ward",
+            "Improved Abjuration",
+            "Spell Resistance"
+          ]
+        },
+        "School of Conjuration": {
+          "source": "PHB",
+          "features": [
+            "Conjuration Savant",
+            "Minor Conjuration",
+            "Benign Transposition",
+            "Focused Conjuration",
+            "Destructive Duality"
+          ]
+        },
+        "School of Divination": {
+          "source": "PHB",
+          "features": [
+            "Divination Savant",
+            "Portent",
+            "Expert Divination",
+            "The Third Eye",
+            "Greater Portent"
+          ]
+        },
+        "School of Enchantment": {
+          "source": "PHB",
+          "features": [
+            "Enchantment Savant",
+            "Hypnotic Gaze",
+            "Instinctive Charm",
+            "Split Enchantment",
+            "Alter Memories"
+          ]
+        },
+        "School of Evocation": {
+          "source": "PHB",
+          "features": [
+            "Evocation Savant",
+            "Sculpt Spells",
+            "Potent Cantrip",
+            "Empowered Evocation",
+            "Overchannel"
+          ]
+        },
+        "School of Illusion": {
+          "source": "PHB",
+          "features": [
+            "Illusion Savant",
+            "Malleable Illusion",
+            "Illusory Self"
+          ]
+        },
+        "School of Necromancy": {
+          "source": "PHB",
+          "features": [
+            "Necromancy Savant",
+            "Grim Harvest",
+            "Undead Thrall",
+            "Inured to Undeath",
+            "Command Undead"
+          ]
+        },
+        "School of Transmutation": {
+          "source": "PHB",
+          "features": [
+            "Transmutation Savant",
+            "Minor Alchemy",
+            "Transmuter Stone",
+            "Shapechanger",
+            "Mass Transmutation"
+          ]
+        }
+      }
+    }
+  }
+}

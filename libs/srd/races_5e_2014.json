@@ -1,0 +1,277 @@
+{
+  "_meta": {
+    "edition": "D&D 5e (2014 PHB)",
+    "description": "All 9 PHB races with subraces, ability bonuses, traits, and languages"
+  },
+  "races": {
+    "Dwarf": {
+      "ability_bonus": {
+        "constitution": 2
+      },
+      "speed": 25,
+      "traits": [
+        "Darkvision 60 ft",
+        "Dwarven Resilience (advantage on saving throws against poison, resistance to poison damage)",
+        "Dwarven Combat Training (proficiency with battleaxe, handaxe, light hammer, warhammer)",
+        "Tool Proficiency (one of: smith tools, brewer supplies, mason tools)",
+        "Stonecunning"
+      ],
+      "languages": [
+        "Common",
+        "Dwarvish"
+      ],
+      "subraces": {
+        "Hill Dwarf": {
+          "ability_bonus": {
+            "wisdom": 1
+          },
+          "traits": [
+            "Dwarven Toughness (+1 HP per level)"
+          ],
+          "source": "PHB"
+        },
+        "Mountain Dwarf": {
+          "ability_bonus": {
+            "strength": 2
+          },
+          "traits": [
+            "Dwarven Armor Training (proficiency with light and medium armor)"
+          ],
+          "source": "PHB"
+        }
+      }
+    },
+    "Elf": {
+      "ability_bonus": {
+        "dexterity": 2
+      },
+      "speed": 30,
+      "traits": [
+        "Darkvision 60 ft",
+        "Keen Senses (proficiency in Perception)",
+        "Fey Ancestry (advantage on saving throws against being charmed, immunity to magical sleep)",
+        "Trance (4-hour long rest)"
+      ],
+      "languages": [
+        "Common",
+        "Elvish"
+      ],
+      "subraces": {
+        "High Elf": {
+          "ability_bonus": {
+            "intelligence": 1
+          },
+          "traits": [
+            "Elf Weapon Training (proficiency with longsword, shortsword, shortbow, longbow)",
+            "Cantrip (one wizard cantrip of choice, INT as spellcasting ability)",
+            "Extra Language"
+          ],
+          "source": "PHB"
+        },
+        "Wood Elf": {
+          "ability_bonus": {
+            "wisdom": 1
+          },
+          "traits": [
+            "Elf Weapon Training (proficiency with longsword, shortsword, shortbow, longbow)",
+            "Mask of the Wild",
+            "Fleet of Foot (speed 35 ft)"
+          ],
+          "speed": 35,
+          "source": "PHB"
+        },
+        "Drow": {
+          "ability_bonus": {
+            "charisma": 1
+          },
+          "traits": [
+            "Superior Darkvision 120 ft",
+            "Sunlight Sensitivity",
+            "Drow Magic (dancing lights cantrip, faerie fire at level 3, darkness at level 5)",
+            "Drow Weapon Training (proficiency with rapier, shortsword, hand crossbow)"
+          ],
+          "source": "PHB"
+        }
+      }
+    },
+    "Halfling": {
+      "ability_bonus": {
+        "dexterity": 2
+      },
+      "speed": 25,
+      "traits": [
+        "Lucky (reroll 1s on attack rolls, ability checks, saving throws)",
+        "Brave (advantage on saving throws against being frightened)",
+        "Halfling Nimbleness (move through larger creatures)"
+      ],
+      "languages": [
+        "Common",
+        "Halfling"
+      ],
+      "subraces": {
+        "Lightfoot": {
+          "ability_bonus": {
+            "charisma": 1
+          },
+          "traits": [
+            "Naturally Stealthy (hide behind larger creatures)"
+          ],
+          "source": "PHB"
+        },
+        "Stout": {
+          "ability_bonus": {
+            "constitution": 1
+          },
+          "traits": [
+            "Stout Resilience (advantage on saving throws against poison)"
+          ],
+          "source": "PHB"
+        }
+      }
+    },
+    "Human": {
+      "ability_bonus": {
+        "strength": 1,
+        "dexterity": 1,
+        "constitution": 1,
+        "intelligence": 1,
+        "wisdom": 1,
+        "charisma": 1
+      },
+      "speed": 30,
+      "traits": [
+        "Extra Language"
+      ],
+      "languages": [
+        "Common"
+      ],
+      "subraces": {
+        "Variant Human": {
+          "ability_bonus": "two different ability scores of your choice +1 each",
+          "traits": [
+            "One skill proficiency of choice",
+            "One feat of choice"
+          ],
+          "source": "PHB"
+        }
+      }
+    },
+    "Dragonborn": {
+      "ability_bonus": {
+        "strength": 2,
+        "charisma": 1
+      },
+      "speed": 30,
+      "traits": [
+        "Draconic Ancestry (determines damage type for breath weapon and damage resistance)",
+        "Breath Weapon (line or cone, 2d6 scaling damage, DEX save, uses per short/long rest)",
+        "Damage Resistance (type determined by draconic ancestry)"
+      ],
+      "languages": [
+        "Common",
+        "Draconic"
+      ],
+      "draconic_ancestry_types": [
+        "Black (acid)",
+        "Blue (lightning)",
+        "Brass (fire)",
+        "Bronze (lightning)",
+        "Copper (acid)",
+        "Gold (fire)",
+        "Green (poison)",
+        "Red (fire)",
+        "Silver (cold)",
+        "White (cold)"
+      ],
+      "subraces": {}
+    },
+    "Gnome": {
+      "ability_bonus": {
+        "intelligence": 2
+      },
+      "speed": 25,
+      "traits": [
+        "Darkvision 60 ft",
+        "Gnome Cunning (advantage on INT, WIS, CHA saving throws against magic)"
+      ],
+      "languages": [
+        "Common",
+        "Gnomish"
+      ],
+      "subraces": {
+        "Forest Gnome": {
+          "ability_bonus": {
+            "dexterity": 1
+          },
+          "traits": [
+            "Natural Illusionist (minor illusion cantrip)",
+            "Speak with Small Beasts"
+          ],
+          "source": "PHB"
+        },
+        "Rock Gnome": {
+          "ability_bonus": {
+            "constitution": 1
+          },
+          "traits": [
+            "Artificer Lore (proficiency with tinker tools, history of magic items)",
+            "Tinker (clockwork toy, fire starter, music box)"
+          ],
+          "source": "PHB"
+        }
+      }
+    },
+    "Half-Elf": {
+      "ability_bonus": {
+        "charisma": 2
+      },
+      "speed": 30,
+      "traits": [
+        "Darkvision 60 ft",
+        "Fey Ancestry (advantage on saving throws against being charmed, immunity to magical sleep)",
+        "Two skill proficiencies of choice",
+        "Two ability score increases of choice (+1 each)"
+      ],
+      "languages": [
+        "Common",
+        "Elvish"
+      ],
+      "subraces": {}
+    },
+    "Half-Orc": {
+      "ability_bonus": {
+        "strength": 2,
+        "constitution": 1
+      },
+      "speed": 30,
+      "traits": [
+        "Darkvision 60 ft",
+        "Savage Attacks (roll an additional weapon die on crit)",
+        "Relentless Endurance (drop to 1 HP instead of 0, once per long rest)",
+        "Menacing (proficiency in Intimidation)"
+      ],
+      "languages": [
+        "Common",
+        "Orc"
+      ],
+      "subraces": {}
+    },
+    "Tiefling": {
+      "ability_bonus": {
+        "intelligence": 1,
+        "charisma": 2
+      },
+      "speed": 30,
+      "traits": [
+        "Darkvision 60 ft",
+        "Hellish Resistance (resistance to fire damage)",
+        "Infernal Legacy (thaumaturgy cantrip, hellish rebuke at level 3, darkness at level 5)"
+      ],
+      "languages": [
+        "Common",
+        "Infernal"
+      ],
+      "subraces": {}
+    }
+  }
+}

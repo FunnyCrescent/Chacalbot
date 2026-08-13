@@ -1,0 +1,341 @@
+{
+  "_meta": {
+    "edition": "D&D 5e (2014 PHB)",
+    "description": "Major PHB feats with prerequisites and effects"
+  },
+  "feats": {
+    "Alert": {
+      "prerequisite": null,
+      "effects": [
+        "+5 to initiative",
+        "Cannot be surprised while conscious",
+        "Other creatures cannot gain advantage on attack rolls against you while hidden"
+      ],
+      "source": "PHB"
+    },
+    "Athlete": {
+      "prerequisite": "Strength 13 or Dexterity 13",
+      "effects": [
+        "+1 STR or DEX",
+        "Climbing, swimming, and jumping costs only 5 ft of movement",
+        "Standing up costs only 5 ft of movement",
+        "Running high jump covers extra distance equal to DEX mod"
+      ],
+      "source": "PHB"
+    },
+    "Actor": {
+      "prerequisite": "Charisma 13",
+      "effects": [
+        "+1 CHA",
+        "Advantage on Deception and Performance checks when trying to pass as another person",
+        "Can mimic the speech of another creature after listening for 1 minute"
+      ],
+      "source": "PHB"
+    },
+    "Charger": {
+      "prerequisite": null,
+      "effects": [
+        "When using Dash action, can make a melee attack or shove as a bonus action",
+        "+5 damage or +10 ft push on charge attack"
+      ],
+      "source": "PHB"
+    },
+    "Crossbow Expert": {
+      "prerequisite": null,
+      "effects": [
+        "Ignore loading quality of crossbows",
+        "No disadvantage on ranged attack rolls within 5 ft of hostile creature",
+        "When attacking with one-handed weapon, can use hand crossbow as bonus action"
+      ],
+      "source": "PHB"
+    },
+    "Defensive Duelist": {
+      "prerequisite": "Dexterity 13",
+      "effects": [
+        "When wielding a finesse weapon, can use reaction to add proficiency bonus to AC against one attack"
+      ],
+      "source": "PHB"
+    },
+    "Dual Wielder": {
+      "prerequisite": null,
+      "effects": [
+        "+1 AC while wielding two melee weapons",
+        "Can two-weapon fight with any melee weapons (not just light)",
+        "Can draw/stow two weapons per turn"
+      ],
+      "source": "PHB"
+    },
+    "Dungeon Delver": {
+      "prerequisite": null,
+      "effects": [
+        "Advantage on Perception and Investigation checks to detect secret doors",
+        "Advantage on saving throws against traps",
+        "Resistance to trap damage",
+        "Can search for traps while traveling at normal pace"
+      ],
+      "source": "PHB"
+    },
+    "Elemental Adept": {
+      "prerequisite": "Ability to cast at least one spell",
+      "effects": [
+        "Spells of chosen damage type ignore resistance",
+        "Treat 1s on damage dice as 2s for chosen type"
+      ],
+      "source": "PHB"
+    },
+    "Grappler": {
+      "prerequisite": "Strength 13",
+      "effects": [
+        "+1 STR",
+        "Advantage on attack rolls against creatures you are grappling",
+        "Can pin a creature grappled by you (contested check)",
+        "Can grapple creatures up to two sizes larger"
+      ],
+      "source": "PHB"
+    },
+    "Great Weapon Master": {
+      "prerequisite": null,
+      "effects": [
+        "On crit or reducing a creature to 0 HP, can make one melee attack as bonus action",
+        "Before attacking with heavy weapon, can take -5 to attack roll for +10 damage"
+      ],
+      "source": "PHB"
+    },
+    "Heavily Armored": {
+      "prerequisite": "Proficiency with medium armor",
+      "effects": [
+        "+1 STR",
+        "Proficiency with heavy armor"
+      ],
+      "source": "PHB"
+    },
+    "Heavy Armor Master": {
+      "prerequisite": "Proficiency with heavy armor",
+      "effects": [
+        "+1 STR",
+        "Reduce bludgeoning/piercing/slashing damage from nonmagical weapons by 3"
+      ],
+      "source": "PHB"
+    },
+    "Inspiring Leader": {
+      "prerequisite": "Charisma 13",
+      "effects": [
+        "Can spend 10 minutes inspiring up to 6 creatures, granting them temporary HP equal to level + CHA mod"
+      ],
+      "source": "PHB"
+    },
+    "Keen Mind": {
+      "prerequisite": null,
+      "effects": [
+        "+1 INT",
+        "Always know which way is north",
+        "Always know the number of hours until next sunrise/sunset",
+        "Can accurately recall anything seen or heard within the past month"
+      ],
+      "source": "PHB"
+    },
+    "Lightly Armored": {
+      "prerequisite": null,
+      "effects": [
+        "+1 STR or DEX",
+        "Proficiency with light armor"
+      ],
+      "source": "PHB"
+    },
+    "Linguist": {
+      "prerequisite": "Intelligence 13",
+      "effects": [
+        "+1 INT",
+        "Learn three languages",
+        "Can create written ciphers only you and chosen creatures can read"
+      ],
+      "source": "PHB"
+    },
+    "Lucky": {
+      "prerequisite": null,
+      "effects": [
+        "3 luck points per long rest",
+        "Can spend a luck point to roll an additional d20 on attack, ability check, or saving throw",
+        "Can spend a luck point to impose disadvantage on attack roll against you"
+      ],
+      "source": "PHB"
+    },
+    "Mage Slayer": {
+      "prerequisite": null,
+      "effects": [
+        "When creature within 5 ft casts a spell, can use reaction to make a melee attack",
+        "When hit by a spell, advantage on saving throw against it",
+        "Melee attacks against spellcasters impose disadvantage on concentration saves"
+      ],
+      "source": "PHB"
+    },
+    "Magic Initiate": {
+      "prerequisite": null,
+      "effects": [
+        "Learn two cantrips from a chosen class spell list",
+        "Learn one 1st-level spell from the same list",
+        "Cast the 1st-level spell once per long rest"
+      ],
+      "source": "PHB"
+    },
+    "Martial Adept": {
+      "prerequisite": null,
+      "effects": [
+        "Learn two fighter maneuvers from Battle Master list",
+        "Gain one d6 superiority die per short rest"
+      ],
+      "source": "PHB"
+    },
+    "Medium Armor Master": {
+      "prerequisite": "Proficiency with medium armor",
+      "effects": [
+        "+1 STR or DEX",
+        "No disadvantage on Stealth checks from medium armor",
+        "Can use DEX mod up to +3 (instead of +2) for AC from medium armor"
+      ],
+      "source": "PHB"
+    },
+    "Mobile": {
+      "prerequisite": null,
+      "effects": [
+        "+10 ft speed",
+        "No difficult terrain from dashing",
+        "When making melee attack, no opportunity attacks from that creature for the rest of the turn"
+      ],
+      "source": "PHB"
+    },
+    "Moderately Armored": {
+      "prerequisite": "Proficiency with light armor",
+      "effects": [
+        "+1 STR or DEX",
+        "Proficiency with medium armor and shields"
+      ],
+      "source": "PHB"
+    },
+    "Mounted Combatant": {
+      "prerequisite": null,
+      "effects": [
+        "Advantage on melee attack rolls against unmounted creatures smaller than mount",
+        "Can force attacks targeted at mount to target you instead",
+        "If mount is subjected to effect that allows DEX save for half damage, mount takes no damage on success and half on failure"
+      ],
+      "source": "PHB"
+    },
+    "Observant": {
+      "prerequisite": null,
+      "effects": [
+        "+1 INT or WIS",
+        "+5 to passive Perception and passive Investigation",
+        "Can read lips"
+      ],
+      "source": "PHB"
+    },
+    "Polearm Master": {
+      "prerequisite": null,
+      "effects": [
+        "When taking the Attack action with a glaive/halberd/quarterstaff/spear, can use bonus action for 1d4 bludgeoning attack with other end",
+        "When creature enters reach, can use reaction to make a melee attack against them"
+      ],
+      "source": "PHB"
+    },
+    "Resilient": {
+      "prerequisite": null,
+      "effects": [
+        "+1 in chosen ability score",
+        "Proficiency in saving throws for that ability"
+      ],
+      "source": "PHB"
+    },
+    "Ritual Caster": {
+      "prerequisite": "Intelligence or Wisdom 13",
+      "effects": [
+        "Can cast ritual spells from a chosen class spell list if you have the spell in a ritual book"
+      ],
+      "source": "PHB"
+    },
+    "Savage Attacker": {
+      "prerequisite": null,
+      "effects": [
+        "Once per turn when rolling weapon damage, can reroll and take either total"
+      ],
+      "source": "PHB"
+    },
+    "Sentinel": {
+      "prerequisite": null,
+      "effects": [
+        "When hitting a creature within 5 ft with an opportunity attack, their speed becomes 0 for the rest of the turn",
+        "Creatures within 5 ft provoke opportunity attacks even with Disengage",
+        "When a creature within 5 ft makes an attack against a target other than you, can use reaction to make a melee attack"
+      ],
+      "source": "PHB"
+    },
+    "Sharpshooter": {
+      "prerequisite": null,
+      "effects": [
+        "No disadvantage on ranged attacks at long range",
+        "Ignore half and three-quarters cover",
+        "Before making a ranged attack, can take -5 to attack roll for +10 damage"
+      ],
+      "source": "PHB"
+    },
+    "Shield Master": {
+      "prerequisite": null,
+      "effects": [
+        "When taking the Attack action, can use bonus action to shove with shield",
+        "Can add shield AC bonus to DEX saves against spells and effects that target only you",
+        "If subjected to effect that allows DEX save for half damage, can use reaction to take no damage"
+      ],
+      "source": "PHB"
+    },
+    "Skulker": {
+      "prerequisite": "Dexterity 13",
+      "effects": [
+        "Can try to hide when lightly obscured",
+        "When miss a ranged attack while hidden, remaining hidden",
+        "Can use action to find a hidden creature with Wisdom (Perception) check"
+      ],
+      "source": "PHB"
+    },
+    "Spell Sniper": {
+      "prerequisite": "Ability to cast at least one spell",
+      "effects": [
+        "Learn one cantrip requiring an attack roll from any class",
+        "Double the range of spells requiring an attack roll",
+        "Ignore half and three-quarters cover for spell attacks"
+      ],
+      "source": "PHB"
+    },
+    "Tavern Brawler": {
+      "prerequisite": null,
+      "effects": [
+        "+1 STR or CON",
+        "Proficiency with improvised weapons",
+        "Can grapple as bonus action after hitting with improvised weapon or unarmed strike"
+      ],
+      "source": "PHB"
+    },
+    "Tough": {
+      "prerequisite": null,
+      "effects": [
+        "+2 HP per level"
+      ],
+      "source": "PHB"
+    },
+    "War Caster": {
+      "prerequisite": "Ability to cast at least one spell",
+      "effects": [
+        "Advantage on Constitution saving throws to maintain concentration",
+        "Can perform somatic components of spells even with weapons/shield in hands",
+        "Can use reaction to cast a spell at a creature that provokes an opportunity attack"
+      ],
+      "source": "PHB"
+    },
+    "Weapon Master": {
+      "prerequisite": null,
+      "effects": [
+        "Proficiency with any four weapons of choice"
+      ],
+      "source": "PHB"
+    }
+  }
+}

@@ -17,7 +17,7 @@ from .models import (
     LocationPath, WorldNpc, NpcRelation, LoreArticle, MarketPrice,
     EconomicEvent, ActiveEffect, Timer, LootTable, DbJournalEntry,
     MemoryEntry, LocationRelation, CombatEncounter, Combatant, PlayerLanguage,
-    SettingEntry, RoundMessageTracker,
+    SettingEntry, RoundMessageTracker, ValidationLog,
 )
 
 logger = logging.getLogger(__name__)
@@ -127,6 +127,59 @@ class SrdRepoMixin:
                     higher_levels=row["higher_levels"], classes=row["classes"], source=row["source"]
                 )
             return None
+
+    # ═══════════════════════════════════════════════════════════
+    # Validation Logs (anti-cheat)
+    # ═══════════════════════════════════════════════════════════
+
+    def save_validation_log(self, vlog: ValidationLog):
+        """Save a validation log entry."""
+        with self._connect() as conn:
+            conn.execute(
+                """INSERT INTO validation_logs
+                   (session_id, character_id, character_name, validation_type,
+                    is_valid, severity, message, suggestion, details_json,
+                    dm_override, override_reason)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (vlog.session_id, vlog.character_id, vlog.character_name,
+                 vlog.validation_type, int(vlog.is_valid), vlog.severity,
+                 vlog.message, vlog.suggestion, vlog.details_json,
+                 int(vlog.dm_override), vlog.override_reason)
+            )
+
+    def get_validation_logs(self, session_id: str, character_id: str = "") -> List[ValidationLog]:
+        """Get validation logs for a session, optionally filtered by character."""
+        with self._connect() as conn:
+            if character_id:
+                rows = conn.execute(
+                    "SELECT * FROM validation_logs WHERE session_id = ? AND character_id = ? ORDER BY created_at DESC",
+                    (session_id, character_id)
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM validation_logs WHERE session_id = ? ORDER BY created_at DESC",
+                    (session_id,)
+                ).fetchall()
+            return [
+                ValidationLog(
+                    id=r["id"], session_id=r["session_id"],
+                    character_id=r["character_id"], character_name=r["character_name"],
+                    validation_type=r["validation_type"], is_valid=bool(r["is_valid"]),
+                    severity=r["severity"], message=r["message"],
+                    suggestion=r["suggestion"], details_json=r["details_json"],
+                    dm_override=bool(r["dm_override"]), override_reason=r["override_reason"],
+                    created_at=r["created_at"]
+                )
+                for r in rows
+            ]
+
+    def dm_override_validation(self, log_id: int, reason: str):
+        """DM override: mark a validation log entry as overridden."""
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE validation_logs SET dm_override = 1, override_reason = ? WHERE id = ?",
+                (reason, log_id)
+            )
 
     # ═══════════════════════════════════════════════════════════
     # Locations

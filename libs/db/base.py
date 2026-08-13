@@ -17,7 +17,7 @@ from .models import (
     LocationPath, WorldNpc, NpcRelation, LoreArticle, MarketPrice,
     EconomicEvent, ActiveEffect, Timer, LootTable, DbJournalEntry,
     MemoryEntry, LocationRelation, CombatEncounter, Combatant, PlayerLanguage,
-    SettingEntry, RoundMessageTracker,
+    SettingEntry, RoundMessageTracker, ValidationLog,
 )
 
 logger = logging.getLogger(__name__)
@@ -706,6 +706,24 @@ class BaseDatabase:
                     created_at TEXT DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+            # ── Validation Logs (anti-cheat) ──────────────────
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS validation_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id TEXT NOT NULL,
+                    character_id TEXT NOT NULL,
+                    character_name TEXT DEFAULT '',
+                    validation_type TEXT DEFAULT 'full',
+                    is_valid INTEGER DEFAULT 1,
+                    severity TEXT DEFAULT 'info',
+                    message TEXT DEFAULT '',
+                    suggestion TEXT DEFAULT '',
+                    details_json TEXT DEFAULT '{}',
+                    dm_override INTEGER DEFAULT 0,
+                    override_reason TEXT DEFAULT '',
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
             # Indexes
             conn.execute("CREATE INDEX IF NOT EXISTS idx_history_session ON history(session_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_players_session ON players(session_id)")
@@ -734,6 +752,8 @@ class BaseDatabase:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_location_relations_char ON location_relations(character_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_character_goals_session ON character_goals(session_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_character_goals_char ON character_goals(character_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_validation_logs_session ON validation_logs(session_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_validation_logs_char ON validation_logs(character_id)")
 
     # ═══════════════════════════════════════════════════════════
     # DB Journal — NEW METHODS

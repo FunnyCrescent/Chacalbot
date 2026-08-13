@@ -443,6 +443,23 @@ class WorldRepoMixin:
             return [WorldNpc(id=r["id"], session_id=r["session_id"], name=r["name"], race=r["race"], occupation=r["occupation"], location_id=r["location_id"], personality=r["personality"], schedule=r["schedule"], is_alive=bool(r["is_alive"]), backstory=r["backstory"], secrets=r["secrets"], faction_id=r["faction_id"], traits=r["traits"] or "[]", created_at=r["created_at"] or "", updated_at=r["updated_at"] or "") for r in rows]
 
 
+    def get_npcs_at_location(self, session_id: str, location_id: str, alive_only: bool = True) -> List[WorldNpc]:
+        """Get all NPCs currently at a specific location by location_id.
+        Convenience wrapper around get_npcs with location_id filter."""
+        return self.get_npcs(session_id, location_id=location_id, alive_only=alive_only)
+
+
+    def get_npcs_by_occupation(self, session_id: str, occupation: str, alive_only: bool = True) -> List[WorldNpc]:
+        """Get all NPCs with a specific occupation in a session."""
+        with self._connect() as conn:
+            query = "SELECT * FROM npcs WHERE session_id = ? AND occupation = ?"
+            params = [session_id, occupation]
+            if alive_only:
+                query += " AND is_alive = 1"
+            rows = conn.execute(query, params).fetchall()
+            return [WorldNpc(id=r["id"], session_id=r["session_id"], name=r["name"], race=r["race"], occupation=r["occupation"], location_id=r["location_id"], personality=r["personality"], schedule=r["schedule"], is_alive=bool(r["is_alive"]), backstory=r["backstory"], secrets=r["secrets"], faction_id=r["faction_id"], traits=r["traits"] or "[]", created_at=r["created_at"] or "", updated_at=r["updated_at"] or "") for r in rows]
+
+
     def set_npc_relation(self, relation: NpcRelation) -> int:
         """Upsert on (session_id, npc_id, character_id) — the old version was
         'INSERT OR REPLACE' with no matching UNIQUE constraint on those columns, so it

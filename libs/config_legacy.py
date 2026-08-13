@@ -83,7 +83,7 @@ MAX_MANUAL_ROLLS_PER_ROUND = 3       # макс. бросков /rholio на и�
 # GAME SETTINGS
 # ═══════════════════════════════════════════════════════════════
 SETTING = "dark_fantasy"
-DND_EDITION = "5e_2024"
+DND_EDITION = "5e_2014"
 MAX_PLAYERS = 6
 MAX_HISTORY = 50
 MASTER_CONTEXT_HISTORY = 30  # Number of history entries to load into Master's context
@@ -213,3 +213,35 @@ OPENAI_PROXY = os.environ.get("OPENAI_PROXY", "").strip() or None
 # Эффективные значения (specific перекрывает global)
 TELEGRAM_PROXY_EFFECTIVE = TELEGRAM_PROXY or GLOBAL_PROXY
 OPENAI_PROXY_EFFECTIVE = OPENAI_PROXY or GLOBAL_PROXY
+
+# ═══════════════════════════════════════════════════════════════
+# EDITION-SPECIFIC RULES
+# ═══════════════════════════════════════════════════════════════
+# Rules that change between 5e 2014 and 5e 2024.
+# The EditionDiff class in libs/srd/edition_diff.py uses DND_EDITION above
+# to determine the active ruleset.  This dict is for any additional
+# overrides or per-campaign deviations.
+EDITION_SPECIFIC_RULES = {
+    # Set to True to allow homebrew overrides for specific rules
+    "allow_homebrew_overrides": False,
+    # If True, the bot enforces 2014-style race-based ability bonuses
+    # even when DND_EDITION is "5e_2024" (for backwards compat)
+    "force_race_ability_bonuses": DND_EDITION == "5e_2014",
+    # If True, Weapon Mastery is available (2024 only, unless overridden)
+    "weapon_mastery_enabled": DND_EDITION == "5e_2024",
+}
+
+# ═══════════════════════════════════════════════════════════════
+# SESSION AUDITOR
+# ═══════════════════════════════════════════════════════════════
+# The auditor periodically analyzes game sessions for problems:
+# character validity, rule compliance, dice roll anomalies, world inconsistencies.
+AUDITOR_ENABLED = True
+AUDITOR_MODEL = "deepseek/deepseek-v4-flash"
+AUDITOR_TEMP = 0.2
+AUDITOR_MAX_TOKENS = 4096
+AUDITOR_SCHEDULE_HOURS = 24       # How often the daily audit runs
+AUDITOR_DICE_ANOMALY_THRESHOLD = 0.01  # Chi-squared p-value threshold
+AUDITOR_RULE_COMPLIANCE_TURNS = 20     # How many recent turns to check
+AUDITOR_DICE_TURNS = 50               # How many recent dice rolls to check
+AUDITOR_REPORTS_DIR = os.path.join(BASE_DIR, "data", "audits")

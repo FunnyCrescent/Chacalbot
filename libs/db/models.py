@@ -599,3 +599,21 @@ class RoundMessageTracker:
     player_id: int  # 0 for bot messages
     message_type: str = "dn"  # "dn", "ask", "bot_confirm", "bot_error", "narrative", "command"
     created_at: str = ""
+
+
+@dataclass
+class ValidationLog:
+    """Log of anti-cheat validation results for a character."""
+    id: int = 0
+    session_id: str = ""
+    character_id: str = ""
+    character_name: str = ""
+    validation_type: str = ""       # "full", "race", "class", "background", "backstory", "math"
+    is_valid: bool = True
+    severity: str = "info"          # "error", "warning", "info"
+    message: str = ""
+    suggestion: str = ""
+    details_json: str = "{}"        # Full CharacterValidationResult as JSON
+    dm_override: bool = False       # DM can override any validation result
+    override_reason: str = ""
+    created_at: str = ""
