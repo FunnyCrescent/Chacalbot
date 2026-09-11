@@ -64,6 +64,7 @@ logger = logging.getLogger(__name__)
 # Кросс-доменные импорты
 from libs.handlers.utils import fmt_players
 from libs.handlers.utils import get_session
+from libs.handlers.utils import md_to_html
 from libs.handlers.utils import send_safe
 from libs.handlers.utils import get_billing_plugin
 
@@ -182,14 +183,21 @@ async def join_confirm_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if billing is not None:
         allowed, msg = await billing.check_game_allowed(update, ctx, session=session)
         if not allowed:
-            await query.edit_message_text(msg)
+            # ИТЕРАЦИЯ 12: текст отказа биллинга содержит markdown (**...**, `...`)
+            # — без конвертации Telegram показывает «звёздочки» как есть.
+            await query.edit_message_text(md_to_html(msg), parse_mode="HTML")
             return
 
     sessions.add_player(session.id, user.id, user.username or "", user.first_name or user.username or "Неизвестный")
     sessions.add_player_to_queue(session.id, user.id)
     await query.edit_message_text(
-        f"✅ **{user.first_name or user.username}** присоединился!\n\n"
-        "Загрузи персонажа: отправь .txt/.md и ответь `/cymeriad`"
+        # ИТЕРАЦИЯ 12: было без parse_mode — «**Имя**» и `/cymeriad` показывались
+        # сырым markdown (репорт пользователя: «✅ **О_О** присоединился!»).
+        md_to_html(
+            f"✅ **{user.first_name or user.username}** присоединился!\n\n"
+            "Загрузи персонажа: отправь .txt/.md и ответь `/cymeriad`"
+        ),
+        parse_mode="HTML",
     )
 
 

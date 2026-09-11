@@ -1,5 +1,63 @@
 # Chacalbot — Список исправлений (ТЗ от FunnyCrescent)
 
+## ИТЕРАЦИЯ 12 — фиксы живого тестирования: TypeError на /dndcychwyn, markdown → HTML, base_url
+
+### /dndcychwyn падал: «TypeError: process_with_db_bot() got an unexpected keyword argument 'session_id'»
+
+**Проблема (реальный лог):** и кнопка выбора сеттинга, и ручная
+`/dndcychwyn arthurian_chivalry` падали с ошибкой генерации/старта. Пять точек
+вызова (`world_cmds.py:840`, `generators.py` ×4 — terrain/weather/world/living
+world) передают `session_id=`, а обёртка `process_with_db_bot(raw_text,
+context="")` его не принимала.
+
+**Решение:** обёртка получила параметр `session_id: str = ""` и пробрасывает
+его в `process_db_bot`. Бонус-эффект: раньше через обёртку
+`self._current_session_id` ВСЕГДА оставался пустым — а его читает
+`moder_ai_dispatch_roll` для доступа к БД (запрос бросков через кнопку в этих
+флоу был сломан). Теперь промпт DB-Bot берётся из копии сессии
+(`md_store.get_prompt`), как и у остальных флоу.
+
+### «Md разметка, которую телеграм не принимает. Должно быть HTML»
+
+**Проблема (репорт: «✅ \*\*О_О\*\* присоединился!»):** 9 точек отправляли в
+Telegram строки с markdown без конвертации: звёздочки видны как есть (без
+parse_mode), легаси `parse_mode="Markdown"` (депрекейтед), а в
+character_cmds.py — ручной `blocked.replace("**", "<b>")`, который заменяет
+открывающие и закрывающие `**` ОДИНАКОВО на `<b>` → незакрытый тег «<b>...<b>»
+→ Telegram отбрасывает ВСЁ сообщение (400 can't parse entities).
+
+**Решение:** все точки переведены на штатный `md_to_html()` +
+`parse_mode="HTML"` (экранирование → конвертация → валидация баланса тегов):
+lobby_cmds (подтверждение входа `/ymuno`, отказ биллинга), narrator_cmds
+(включение перевода), service_cmds (подсказка `/rhwymo` вне ЛС), character_cmds
+(отказ смены персонажа), plugins/billing (ЛС-гейт, исчерпание токенов, drained-
+notice, /ychwanegu использование+успех, admin-лог, billmode-меню). Остальные
+отправки и так шли через `send_safe` (конвертирует сам) — проверено AST-сканом
+всех точек отправки.
+
+**Регрессионный тест:** `tests/test_iter12.py::TestNoRawMarkdownSends` —
+AST-скан репозитория: ни одна прямая отправка (reply_text / edit_message_text /
+send_message / …) не должна содержать markdown-литералов в обход md_to_html /
+send_safe.
+
+### config.json: «base_url» пустым — деплой без LM Studio больше не ловит connection refused
+
+**Проблема:** в config.json был захардкожен `api.base_url:
+"http://localhost:1234/v1"` (локальный запуск из ИТЕРАЦИИ 8) — на сервере без
+LM Studio каждый LLM-вызов упирался в отказ соединения ещё до перебора
+провайдеров.
+
+**Решение:** `"base_url": ""` — теперь сервер НЕ задаётся в config.json:
+при заполненном `LLM_PROVIDERS` в .env используются base_url/ключи/модели из
+него (с авто-переключением ИТЕРАЦИИ 11); без LLM_PROVIDERS — `OPENAI_BASE_URL`
+из .env. Загрузчик трактовал пустую строку правильно с самого начала —
+зафиксировано тестами (пустая → env, непустая → перекрывает env).
+
+**Тесты:** tests/test_iter12.py (19) — проброс session_id (+_current_session_id),
+md_to_html на всех исправленных текстах (включая враждебное имя игрока
+«\<b\>&script\</b\>»), поведение api.base_url ("" / непустая / отсутствует),
+AST-скан «сырого markdown». Итого 360/360.
+
 ## ИТЕРАЦИЯ 11 — авто-переключение провайдеров на гео-блоке + creu через общий клиент
 
 ### Гео-блок Google валил /cymeriad: «вердикт: ERROR. API 400: User location is not supported»

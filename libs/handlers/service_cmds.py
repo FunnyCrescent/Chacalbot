@@ -40,7 +40,7 @@ from libs.db import BindsDB
 from libs.db.binds_db import ALIAS_RE, RESERVED_BIND_WORDS
 from libs.proxy_helper import aiohttp_session_kwargs, aiohttp_request_kwargs
 from libs.handlers._state import sessions
-from libs.handlers.utils import get_session, send_safe
+from libs.handlers.utils import get_session, md_to_html, send_safe
 
 logger = logging.getLogger(__name__)
 
@@ -236,10 +236,14 @@ async def bind_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     chat_type = update.effective_chat.type if update.effective_chat else "private"
 
     if chat_type != "private":
+        # ИТЕРАЦИЯ 12: parse_mode="Markdown" (легаси) заменён на HTML —
+        # Telegram-маркдаун не принимает `...`-бэктики надёжно и депрекейтед.
         await update.message.reply_text(
-            "🔒 Бинды создаются только в личных сообщениях бота.\n"
-            "Перешли мне эту команду в ЛС: `/rhwymo <команда> <псевдоним>`",
-            parse_mode="Markdown",
+            md_to_html(
+                "🔒 Бинды создаются только в личных сообщениях бота.\n"
+                "Перешли мне эту команду в ЛС: `/rhwymo <команда> <псевдоним>`"
+            ),
+            parse_mode="HTML",
         )
         return
 

@@ -547,8 +547,12 @@ async def _apply_saved_char_to_session(update: Update, query, user, session,
     # если у игрока есть живой персонаж. Разрешены: новый игрок / мёртвый персонаж.
     blocked = _char_change_blocked(db, session, user.id)
     if blocked:
+        # ИТЕРАЦИЯ 12: было blocked.replace("**", "<b>") — открывающие и
+        # закрывающие ** заменялись ОДИНАКОВО на <b>, получался незакрытый
+        # тег «<b>...<b>» и Telegram отбрасывал ВСЁ сообщение (400 can't
+        # parse entities). md_to_html конвертирует корректно и экранирует.
         await query.edit_message_text(
-            blocked.replace("**", "<b>").replace("/cymeriad", "<code>/cymeriad</code>"),
+            md_to_html(blocked),
             parse_mode="HTML",
         )
         return

@@ -45,6 +45,10 @@ from libs.config_legacy import (
 )
 from libs.db.billing_repo import BillingRepo
 
+# ИТЕРАЦИЯ 12: все пользовательские тексты плагина написаны markdown'ом
+# (**жирный**, `код`), а Telegram требует HTML. Конвертация на отправке.
+from libs.handlers.utils import md_to_html
+
 logger = logging.getLogger(__name__)
 
 
@@ -273,9 +277,12 @@ class BillingPlugin(Plugin):
                 names = ", ".join(f"`{uid}`" for uid in drained)
                 await bot_obj.send_message(
                     chat_id,
-                    "💰 Токены исчерпаны у: " + names + ".\n"
-                    "Их следующий ход будет заблокирован до пополнения — "
-                    "тестеры могут начислить токены командой /ychwanegu.",
+                    md_to_html(
+                        "💰 Токены исчерпаны у: " + names + ".\n"
+                        "Их следующий ход будет заблокирован до пополнения — "
+                        "тестеры могут начислить токены командой /ychwanegu."
+                    ),
+                    parse_mode="HTML",
                 )
             except Exception as e:
                 logger.warning(f"[billing] drained-notice failed: {e}")
@@ -298,8 +305,12 @@ class BillingPlugin(Plugin):
         args = (ctx.args or [])
         if len(args) != 2 or not args[0].lstrip("-").isdigit() or not args[1].lstrip("-").isdigit():
             await update.effective_chat.send_message(
-                "Использование: `/ychwanegu <user_id> <сумма>`\n"
-                "Пример: `/ychwanegu 123456789 5000000`")
+                md_to_html(
+                    "Использование: `/ychwanegu <user_id> <сумма>`\n"
+                    "Пример: `/ychwanegu 123456789 5000000`"
+                ),
+                parse_mode="HTML",
+            )
             return
         target_id, amount = int(args[0]), int(args[1])
         if amount <= 0:
@@ -309,8 +320,12 @@ class BillingPlugin(Plugin):
             actor_id=user.id, user_id=target_id, amount=amount,
             note=f"ручное пополнение тестером {user.id}")
         await update.effective_chat.send_message(
-            f"✅ Игроку `{target_id}` начислено **{amount}** токенов.\n"
-            f"Новый баланс: **{new_balance}**.")
+            md_to_html(
+                f"✅ Игроку `{target_id}` начислено **{amount}** токенов.\n"
+                f"Новый баланс: **{new_balance}**."
+            ),
+            parse_mode="HTML",
+        )
 
         # Обязательный лог в админ-канал (переиспользуем телеметрический).
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -319,7 +334,11 @@ class BillingPlugin(Plugin):
                     f"(баланс: {new_balance}) в {ts}")
         if ADMIN_CHAT_ID:
             try:
-                await ctx.bot.send_message(ADMIN_CHAT_ID, log_text)
+                await ctx.bot.send_message(
+                    ADMIN_CHAT_ID,
+                    md_to_html(log_text),
+                    parse_mode="HTML",
+                )
             except Exception as e:
                 logger.warning(f"[billing] admin log failed: {e}")
         logger.info(log_text)
@@ -354,4 +373,6 @@ class BillingPlugin(Plugin):
                  if mode == "split"
                  else "👑 Способ оплаты: **полностью платит создатель**")
         await query.edit_message_text(
-            label + "\n\n🔒 Выбор зафиксирован на всю жизнь сессии и не меняется.")
+            md_to_html(label + "\n\n🔒 Выбор зафиксирован на всю жизнь сессии и не меняется."),
+            parse_mode="HTML",
+        )

@@ -271,14 +271,22 @@ class DBBotEngineMixin:
             return {"answer": f"*[Ошибка DB-Bot: {e}]*", "game_actions": game_actions}
 
 
-    async def process_with_db_bot(self, raw_text: str, context: str = "") -> List[Dict]:
+    async def process_with_db_bot(self, raw_text: str, context: str = "",
+                                  session_id: str = "") -> List[Dict]:
         """
         Universal wrapper: after ANY AI text, run DB-Bot to extract and apply DB actions.
         Returns list of game_actions.
+
+        ИТЕРАЦИЯ 12: точки вызова (world_cmds.py:840, generators.py ×4) передают
+        session_id= — раньше параметра не было, и /dndcychwyn падал с
+        «TypeError: process_with_db_bot() got an unexpected keyword argument
+        'session_id'». Пробрасываем дальше: process_db_bot фиксирует
+        self._current_session_id (нужен moder_ai_dispatch_roll для доступа к БД)
+        и берёт промпт из копии сессии (md_store.get_prompt).
         """
         if not raw_text or not raw_text.strip():
             return []
-        return await self.process_db_bot(raw_text, context=context)
+        return await self.process_db_bot(raw_text, context=context, session_id=session_id)
 
 
     def _read_db_get_tool(self, tool_name: str, args: Dict, session_id: str) -> Optional[str]:

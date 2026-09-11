@@ -1,8 +1,8 @@
 {
   "_readme": "Настройки Chacalbot. Токены (TELEGRAM_BOT_TOKEN, OPENAI_API_KEY) и ID (ADMIN_CHAT_ID) остаются в .env — здесь их НЕТ и не надо. Изменения требуют перезапуска бота. У нарративщика (master) thinking всегда включён и не выключается. ВСЕ текстовые модели переведены на локальную google/gemma-4-31b-it (кроме embedding — эмбеддинги Gemma не делает); сервер указывается в api.base_url.",
   "api": {
-    "_readme": "base_url — адрес ЛОКАЛЬНОГО OpenAI-совместимого сервера: LM Studio http://localhost:1234/v1 | Ollama http://localhost:11434/v1 | vLLM/llama.cpp — свой порт. Пустая строка = брать из OPENAI_BASE_URL в .env (по умолчанию облачный). Ключ не нужен локально, но поле OPENAI_API_KEY в .env должно быть непустым (любая строка) — иначе клиент не инициализируется.",
-    "base_url": "http://localhost:1234/v1"
+    "_readme": "base_url — адрес OpenAI-совместимого сервера. ПУСТАЯ СТРОКА (текущее значение) = сервер задаётся НЕ здесь: при заполненном LLM_PROVIDERS в .env используются base_url/ключи/модели из него (рекомендуется — работает авто-переключение провайдеров); без LLM_PROVIDERS берётся OPENAI_BASE_URL из .env (по умолчанию облачный). Если захочешь локальный сервер (LM Studio http://localhost:1234/v1 | Ollama http://localhost:11434/v1) — впиши его сюда, это перекроет .env. Ключ не нужен локально, но OPENAI_API_KEY в .env должен быть непустым (любая строка) — иначе клиент не инициализируется.",
+    "base_url": ""
   },
   "models": {
     "master": "google/gemma-4-31b-it",

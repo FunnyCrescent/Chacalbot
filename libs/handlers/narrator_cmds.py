@@ -74,6 +74,7 @@ from libs.handlers.engine import _track_round_message
 from libs.handlers.engine import _track_pending_combat_message
 from libs.handlers.engine import _track_round_messages_with_fallback
 from libs.handlers.utils import get_session
+from libs.handlers.utils import md_to_html
 from libs.handlers.utils import send_safe
 from libs.handlers.utils import world_gen_guard, has_any_round_history
 from libs.handlers.utils import capture_thread_id
@@ -371,7 +372,14 @@ async def cyfieithu_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     db = db_manager.get_db(target_session.id)
     db.set_player_language(target_session.id, user_id, language, True)
-    await update.message.reply_text(f"🌐 Перевод на **{language}** включён! ✅\nНарратив будет приходить в ЛС через несколько секунд после отправки в группу.")
+    # ИТЕРАЦИЯ 12: было без parse_mode — «**язык**» показывался звёздочками.
+    await update.message.reply_text(
+        md_to_html(
+            f"🌐 Перевод на **{language}** включён! ✅\n"
+            "Нарратив будет приходить в ЛС через несколько секунд после отправки в группу."
+        ),
+        parse_mode="HTML",
+    )
 
 
 async def _process_dn_action(update: Update, ctx: ContextTypes.DEFAULT_TYPE, action_text: str):
