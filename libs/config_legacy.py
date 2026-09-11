@@ -304,6 +304,35 @@ LLM_PROVIDERS = os.environ.get("LLM_PROVIDERS", "")
 # не запускают — ошибка сразу уходит наружу.
 PROVIDER_SWITCH_STATUSES = {401, 402, 403}
 
+# ИТЕРАЦИЯ 11: «средовые» ошибки, приходящие с 400/403/404. По умолчанию 400/404
+# считаются ошибкой ЗАПРОСА и уходят наружу НЕ переключаясь, но если в теле
+# ответа есть одна из этих подстрок — провайдер не обслужит НИ эту, НИ любую
+# другую модель (гео-блок региона, невалидный ключ, отключённый биллинг,
+# заблокированный аккаунт). Такой ответ обязан увести перебор к следующему
+# провайдеру. Сравнение case-insensitive по сырому телу ответа.
+# Реальный кейс: Google Gemini → «400 FAILED_PRECONDITION: User location is
+# not supported for the API use.» — раньше падал наружу и валил /cymeriad,
+# хотя остальные API из LLM_PROVIDERS рабочие.
+PROVIDER_LEVEL_ERROR_PATTERNS = (
+    "failed_precondition",        # Google: гео-блок / окружение
+    "user location",              # "User location is not supported for the API use."
+    "location is not supported",  # вариант той же гео-ошибки
+    "country not supported",      # вариант гео-ошибки
+    "api key not valid",          # Google: ключ невалиден
+    "api_key_not_valid",
+    "incorrect api key",          # OpenAI-стиль
+    "invalid_api_key",
+    "permission denied",          # Google PERMISSION_DENIED: ключ без доступа к API
+    "permission_denied",
+    "unauthenticated",            # ключ вообще не передался/не принят
+    "billing",                    # "Billing has not been enabled...", лимиты ключа
+    "insufficient_quota",         # квота ключа исчерпана (не оживёт от ретрая)
+    "quota exceeded",
+    "account deactivated",
+    "account suspended",
+    "has been suspended",
+)
+
 
 def _parse_providers_json(raw: str) -> list:
     """Parse a providers JSON string into a list of validated provider dicts.

@@ -1,9 +1,12 @@
 """
 LLM-клиент для creu-модуля.
-Использует aiohttp для совместимости с существующим ботом.
-Поддерживает OpenAI и OpenRouter (любой совместимый API).
 
-Два типа вызовов:
+ИТЕРАЦИЯ 11: вызовы идут через OpenAIClient — автоматический перебор
+провайдеров (LLM_PROVIDERS / CREU_PROVIDERS) и «средовых» ошибок
+(гео-блок, ключ, биллинг), как у всех ролей бота. Раньше был собственный
+aiohttp-вызов на фиксированный base_url — падал без переключений.
+
+Типы вызовов:
 1. get_options() — лёгкий запрос, возвращает список строк для кнопок
 2. generate_character() — тяжёлый запрос, возвращает полный JSON персонажа
 """
@@ -12,16 +15,9 @@ import json
 import logging
 import re
 
-import aiohttp
-
 logger = logging.getLogger(__name__)
 
-from libs.config_legacy import (
-    OPENAI_API_KEY as LLM_API_KEY,
-    OPENAI_BASE_URL as LLM_BASE_URL,
-    DB_MODEL as CREU_MODEL,
-)
-from libs.proxy_helper import aiohttp_session_kwargs, aiohttp_request_kwargs
+from libs.config_legacy import DB_MODEL as CREU_MODEL
 
 # ── Промпты для получения списков опций ────────────────────────────
 OPTIONS_SYSTEM = (
@@ -135,35 +131,35 @@ async def chat_completion(
     temperature: float = 0.7,
     max_tokens: int = 1000,
     response_format: dict | None = None,
-    api_key: str = LLM_API_KEY,
-    base_url: str = LLM_BASE_URL,
+    api_key: str | None = None,
+    base_url: str | None = None,
 ) -> str:
-    url = f"{base_url.rstrip('/')}/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-    payload: dict = {
-        "model": model,
-        "messages": messages,
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-    }
-    if response_format:
-        payload["response_format"] = response_format
+    """ИТЕРАЦИЯ 11: тонкая обёртка над OpenAIClient.chat() — перебор
+    провайдеров/моделей, retry/backoff, proxy и usage-биллинг — всё
+    централизовано в клиенте. Роль "creu": провайдеры берутся из
+    CREU_PROVIDERS → LLM_PROVIDERS → одиночный дефолт (как у других ролей).
+    api_key/base_url — legacy-переопределения (дефолт одиночного провайдера;
+    при настроенном LLM_PROVIDERS список провайдеров приоритетнее — так же
+    ведут себя все роли бота)."""
+    # Ленивый импорт: libs.ai.client тянет aiohttp + конфиг — не нужен при
+    # старте бота, только на первом шаге /creu.
+    from libs.ai.client import OpenAIClient
 
-    async with aiohttp.ClientSession(**aiohttp_session_kwargs()) as session:
-        async with session.post(
-            url,
-            headers=headers,
-            json=payload,
-            timeout=aiohttp.ClientTimeout(total=30),
-            **aiohttp_request_kwargs(),
-        ) as resp:
-            data = await resp.json()
-            if "error" in data:
-                raise RuntimeError(f"LLM error: {data['error']}")
-            return data["choices"][0]["message"]["content"]
+    client = OpenAIClient(
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        base_url=base_url,
+        api_key=api_key,
+        role="creu",
+    )
+    extra = {"response_format": response_format} if response_format else None
+    resp = await client.chat(messages, extra_payload=extra)
+    # Прежнее поведение: некоторые шлюзы возвращают 200 с {"error": ...} —
+    # не отдаём наружу «успех» с ошибкой внутри.
+    if isinstance(resp.get("error"), (dict, str)):
+        raise RuntimeError(f"LLM error: {resp['error']}")
+    return resp["choices"][0]["message"]["content"]
 
 
 # ═══════════════════════════════════════════════════════════════

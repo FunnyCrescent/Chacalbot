@@ -6,6 +6,14 @@
 Переключение на следующую пару — при 401/402/403 или после исчерпания
 ретраев (429/5xx/сеть). 400/404 — ошибка ЗАПРОСА, не провайдера — сразу наружу.
 
+ИТЕРАЦИЯ 11: 400/403/404 с «средовым» телом (гео-блок FAILED_PRECONDITION,
+невалидный ключ, биллинг, suspended-аккаунт — см.
+config_legacy.PROVIDER_LEVEL_ERROR_PATTERNS) — это НЕ ошибка запроса:
+провайдер не обслужит ни одну модель. Такой ответ переключает перебор на
+СЛЕДУЮЩЕГО ПРОВАЙДЕРА, пропуская его оставшиеся модели. Реальный кейс:
+«400 User location is not supported for the API use» валил /cymeriad,
+хотя остальные API из LLM_PROVIDERS были рабочие.
+
 ИТЕРАЦИЯ 10 (Раздел 6): после каждого успешного вызова читаем
 response["usage"]["total_tokens"] и отдаём в usage_ledger (реальное
 списание токенов биллингом).
@@ -20,6 +28,7 @@ import aiohttp
 from libs.config_legacy import (
     OPENAI_BASE_URL, OPENAI_API_KEY, EMBEDDING_ENDPOINT, get_thinking_payload,
     get_providers_for_role, PROVIDER_SWITCH_STATUSES,
+    PROVIDER_LEVEL_ERROR_PATTERNS,
 )
 from libs.proxy_helper import aiohttp_session_kwargs, aiohttp_request_kwargs
 
@@ -60,17 +69,35 @@ class AllProvidersExhausted(Exception):
 
 class _ProviderSwitch(Exception):
     """Internal signal: эта пара провайдер+модель провалилась ошибкой, которая
-    ДОСТОЙНА переключения (401/402/403 или исчерпание ретраев). Ловится
-    вложенным циклом chat()/embed() и приводит к следующей модели/провайдеру.
+    ДОСТОЙНА переключения (401/402/403, исчерпание ретраев или «средовая»
+    400/404 — см. _is_provider_level_error). Ловится вложенным циклом
+    chat()/embed() и приводит к следующей модели/провайдеру.
     Наружу никогда не выходит — наружу выходит AllProvidersExhausted или
-    исходная непереключаемая ошибка."""
+    исходная непереключаемая ошибка.
+
+    provider_level=True — виноват ПРОВАЙДЕР целиком (гео-блок/ключ/биллинг),
+    его оставшиеся модели перебирать бессмысленно: цикл сразу переходит к
+    следующему провайдеру."""
     def __init__(self, provider_name: str, model: str, reason: str,
-                 original: Optional[Exception] = None):
+                 original: Optional[Exception] = None,
+                 provider_level: bool = False):
         self.provider_name = provider_name
         self.model = model
         self.reason = reason
         self.original = original
+        self.provider_level = provider_level
         super().__init__(f"{provider_name}/{model}: {reason}")
+
+
+def _is_provider_level_error(status: int, error_text: str) -> bool:
+    """ИТЕРАЦИЯ 11: гео-блок, невалидный ключ, биллинг, suspension приходят
+    как 400/403/404, но это не ошибка ЗАПРОСА — провайдер не обслужит НИ одну
+    модель (ни текущую, ни следующую). Проверяем сырое тело ответа на паттерны
+    из config_legacy.PROVIDER_LEVEL_ERROR_PATTERNS (case-insensitive)."""
+    if not error_text:
+        return False
+    lowered = error_text.lower()
+    return any(pattern in lowered for pattern in PROVIDER_LEVEL_ERROR_PATTERNS)
 
 
 def _parse_api_error_body(error_text: str) -> Dict[str, Optional[str]]:
@@ -90,6 +117,11 @@ def _parse_api_error_body(error_text: str) -> Dict[str, Optional[str]]:
         # Not JSON — treat the whole body as the message.
         result["message"] = error_text[:200]
         return result
+
+    # ИТЕРАЦИЯ 11: часть агрегаторов (и Google-совместимые шлюзы) заворачивают
+    # ошибку в массив: [{"error": {...}}]. Разворачиваем первый элемент.
+    if isinstance(body, list):
+        body = body[0] if body and isinstance(body[0], dict) else None
 
     # Look for the message
     if isinstance(body, dict):
@@ -160,7 +192,8 @@ class OpenAIClient:
 
     async def chat(self, messages: List[Dict], system_prompt: Optional[str] = None,
                    tools: Optional[List[Dict]] = None, tool_choice: Optional[str] = "auto",
-                   max_tokens: Optional[int] = None, retries: int = 3) -> Dict:
+                   max_tokens: Optional[int] = None, retries: int = 3,
+                   extra_payload: Optional[Dict] = None) -> Dict:
         """Call /chat/completions with retries + provider/model fallback.
 
         BUG #6 + #13 FIX: HTTP 429/5xx retried with exponential backoff; trace_id
@@ -169,9 +202,13 @@ class OpenAIClient:
         ИТЕРАЦИЯ 10 (Раздел 8): поверх retry-цикла — вложенный перебор
         провайдер → модели из статической конфигурации роли (LLM_PROVIDERS /
         <ROLE>_PROVIDERS). КАЖДЫЙ вызов начинает перебор ЗАНОВО с пары №1 —
-        никакого состояния между запросами. Переключение пары: 401/402/403
-        или исчерпание ретраев (429/5xx/сеть). 400/404 — ошибка запроса —
-        сразу наружу, перебор не продолжается.
+        никакого состояния между запросами. Переключение пары: 401/402/403,
+        исчерпание ретраев (429/5xx/сеть) или «средовая» 400/404
+        (гео-блок/ключ/биллинг). Чистая ошибка запроса (400/404 без паттернов
+        провайдера) — сразу наружу, перебор не продолжается.
+
+        ИТЕРАЦИЯ 11: extra_payload — дополнительные поля JSON-payload
+        поверх стандартных (например, {"response_format": {...}} для creu).
         """
         # Trim messages to avoid payload bloat (keep last 25 + system).
         # Note: this is a defensive trim — process_master_turn already trims to 30.
@@ -189,6 +226,8 @@ class OpenAIClient:
         if tools:
             base_payload["tools"] = tools
             base_payload["tool_choice"] = tool_choice
+        if extra_payload:
+            base_payload.update(extra_payload)
         # Thinking mode (config.json → thinking.style). Мержится в корень payload:
         # {"reasoning": {"enabled": true}} | {"chat_template_kwargs": {"enable_thinking": true}}
         # | {"thinking": {"type": "enabled"}} — зависит от агрегатора.
@@ -220,6 +259,11 @@ class OpenAIClient:
                         f"[chat] provider switch: role={self.role} "
                         f"provider={provider['name']} model={model} → {sw.reason}"
                     )
+                    if sw.provider_level:
+                        # ИТЕРАЦИЯ 11: виноват провайдер целиком (гео-блок/ключ/
+                        # биллинг) — его оставшиеся модели заведомо упадут с той
+                        # же ошибкой. Сразу к следующему провайдеру.
+                        break
                     continue
 
         raise AllProvidersExhausted(self.role, attempts, last_switch or None)
@@ -292,14 +336,31 @@ class OpenAIClient:
                                 last_error = err
                             elif response.status in PROVIDER_SWITCH_STATUSES:
                                 # Раздел 8: 401/402/403 — auth/платёж/доступ. Ретраить
-                                # бессмысленно — сразу переключаем пару.
+                                # бессмысленно — сразу переключаем пару. 401/402 —
+                                # всегда уровень ПРОВАЙДЕРА (ключ не починится на
+                                # другой модели); 403 может быть пер-модельным.
                                 logger.error(
                                     f"[chat] HTTP {response.status} (provider-level). "
                                     f"trace_id={last_trace_id or 'n/a'}: {last_error_msg}"
                                 )
                                 raise _ProviderSwitch(
                                     provider["name"], model,
-                                    f"HTTP {response.status}: {last_error_msg}")
+                                    f"HTTP {response.status}: {last_error_msg}",
+                                    provider_level=response.status in (401, 402))
+                            elif _is_provider_level_error(response.status, error_text):
+                                # ИТЕРАЦИЯ 11: «средовая» 400/404 — гео-блок,
+                                # невалидный ключ, биллинг, suspension. Это уровень
+                                # ПРОВАЙДЕРА: пропускаем его модели целиком и идём
+                                # к следующему провайдеру из LLM_PROVIDERS.
+                                logger.error(
+                                    f"[chat] HTTP {response.status} (provider-level "
+                                    f"environmental). trace_id={last_trace_id or 'n/a'}: "
+                                    f"{last_error_msg}"
+                                )
+                                raise _ProviderSwitch(
+                                    provider["name"], model,
+                                    f"HTTP {response.status}: {last_error_msg}",
+                                    provider_level=True)
                             else:
                                 # Non-retryable HTTP error (400/404/422 etc.) — ошибка
                                 # ЗАПРОСА, не провайдера: перебор не продолжаем, чужой
@@ -371,6 +432,8 @@ class OpenAIClient:
 
         ИТЕРАЦИЯ 10 (Раздел 8): тот же перебор провайдер → модели, что и в chat()
         (EMBEDDING_PROVIDERS / LLM_PROVIDERS). Без памяти между вызовами.
+        ИТЕРАЦИЯ 11: «средовые» ошибки (гео-блок/ключ/биллинг) пропускают
+        провайдера целиком — как в chat().
         """
         if not texts:
             return []
@@ -398,6 +461,8 @@ class OpenAIClient:
                         f"[embed] provider switch: role={self.role} "
                         f"provider={provider['name']} model={model} → {sw.reason}"
                     )
+                    if sw.provider_level:
+                        break  # ИТЕРАЦИЯ 11: провайдер мёртв целиком — к следующему
                     continue
         raise AllProvidersExhausted(self.role, attempts, last_switch or None)
 
@@ -405,7 +470,9 @@ class OpenAIClient:
                           retries: int) -> List[List[float]]:
         """Одна пара провайдер+модель для /embeddings (retry внутри).
         Любое исчерпание ретраев → _ProviderSwitch (embeddings — enhancement,
-        упрощённая классификация уместна: всё равно fail-soft у вызывающих)."""
+        упрощённая классификация уместна: всё равно fail-soft у вызывающих).
+        ИТЕРАЦИЯ 11: «средовая» ошибка (гео-блок/ключ/биллинг) — мгновенный
+        _ProviderSwitch(provider_level=True) без сжигания ретраев."""
         base_url = provider["base_url"]
         headers = self._headers_for(provider.get("api_key", ""))
         last_error = None
@@ -423,12 +490,19 @@ class OpenAIClient:
                     ) as response:
                         if response.status != 200:
                             error_text = await response.text()
+                            if _is_provider_level_error(response.status, error_text):
+                                raise _ProviderSwitch(
+                                    provider["name"], model,
+                                    f"HTTP {response.status}: {error_text[:200]}",
+                                    provider_level=True)
                             raise Exception(f"Embeddings API {response.status}: {error_text}")
                         data = json.loads(await response.text(encoding="utf-8"))
                         self._report_usage(data, model)
                         # OpenAI-style: data["data"] is a list of {"embedding": [...], "index": i}
                         items = sorted(data.get("data", []), key=lambda x: x.get("index", 0))
                         return [item["embedding"] for item in items]
+            except _ProviderSwitch:
+                raise  # ИТЕРАЦИЯ 11: не глотать — сигнал переключения (provider_level) выше
             except Exception as e:
                 last_error = e
                 logger.warning(f"[embed] Attempt {attempt+1}/{retries} failed: {e}")
