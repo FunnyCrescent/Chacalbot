@@ -1,0 +1,75 @@
+{
+  "categories": {
+    "fantasy": {
+      "label": "Фэнтези",
+      "settings": {
+        "medieval_fantasy": {
+          "name": "Средневековое фэнтези",
+          "file": "medieval_fantasy.md",
+          "builtin": true,
+          "complexity": 0.6,
+          "summary": "Классическое фэнтези в духе D&D. Рыцари, маги, драконы, подземелья. Героическое приключение с эпическими ставками."
+        },
+        "dark_fantasy": {
+          "name": "Тёмное фэнтези",
+          "file": "dark_fantasy.md",
+          "builtin": true,
+          "complexity": 0.9,
+          "summary": "Мрачный мир в духе Dark Souls и Warhammer. Умирающая цивилизация, демоны, проклятия, безнадёга."
+        },
+        "high_fantasy": {
+          "name": "High Fantasy",
+          "file": "high_fantasy.md",
+          "builtin": true,
+          "complexity": 0.8,
+          "summary": "Эпический мир Forgotten Realms. Межпланарные путешествия, живые боги, легендарные артефакты."
+        },
+        "arthurian_chivalry": {
+          "name": "Артуриана",
+          "file": "arthurian_chivalry.md",
+          "builtin": true,
+          "complexity": 0.65,
+          "summary": "Рыцарский мир в духе легенд о короле Артуре. Кодекс чести, поиски Грааля, Волшебный Народ и договоры с фейри."
+        }
+      }
+    },
+    "historical": {
+      "label": "Историческое средневековье",
+      "settings": {
+        "low_fantasy_intrigue": {
+          "name": "Смутное Время",
+          "file": "low_fantasy_intrigue.md",
+          "builtin": true,
+          "complexity": 0.75,
+          "summary": "Приземлённое средневековье почти без магии в духе «Игры престолов». Политика, войны за престол, предательство."
+        },
+        "plague_horror": {
+          "name": "Эпоха Мора",
+          "file": "plague_horror.md",
+          "builtin": true,
+          "complexity": 0.85,
+          "summary": "Народный хоррор эпохи чумы. Суеверия, охоты на ведьм, выживание — настоящий монстр здесь толпа, а не демон."
+        },
+        "silk_road_crusades": {
+          "name": "Шёлковый Путь",
+          "file": "silk_road_crusades.md",
+          "builtin": true,
+          "complexity": 0.7,
+          "summary": "Торговые караваны и священные войны на стыке культур Запада и Востока. Дипломатия, торговля, путешествия."
+        }
+      }
+    },
+    "witcher": {
+      "label": "Ведьмак",
+      "settings": {
+        "witcher_world": {
+          "name": "Мир Ведьмака",
+          "file": "witcher_world.md",
+          "builtin": true,
+          "complexity": 0.85,
+          "summary": "Славянское тёмное фэнтези. Серая мораль, контракты на чудовищ, политические интриги, ведьмаки."
+        }
+      }
+    }
+  }
+}

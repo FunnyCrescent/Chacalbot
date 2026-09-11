@@ -1,0 +1,180 @@
+{
+  "_meta": {
+    "edition": "D&D 5e (2014 PHB)",
+    "description": "All 13 PHB backgrounds with skill proficiencies, tool proficiencies, and features"
+  },
+  "backgrounds": {
+    "Acolyte": {
+      "skill_proficiencies": [
+        "Insight",
+        "Religion"
+      ],
+      "tool_proficiencies": [],
+      "languages": 2,
+      "feature": "Shelter of the Faithful",
+      "equipment": "Holy symbol, prayer book or prayer wheel, vestments, 5 sticks of incense, vestments, alms box, common clothes, pouch with 15 gp",
+      "source": "PHB"
+    },
+    "Charlatan": {
+      "skill_proficiencies": [
+        "Deception",
+        "Sleight of Hand"
+      ],
+      "tool_proficiencies": [
+        "Disguise kit",
+        "Forgery kit"
+      ],
+      "languages": 0,
+      "feature": "False Identity",
+      "equipment": "Con tools, disguise kit, fine clothes, pouch with 15 gp",
+      "source": "PHB"
+    },
+    "Criminal": {
+      "skill_proficiencies": [
+        "Deception",
+        "Stealth"
+      ],
+      "tool_proficiencies": [
+        "Thieves tools",
+        "Gaming set (one)"
+      ],
+      "languages": 0,
+      "feature": "Criminal Contact",
+      "equipment": "Rapier, leather armor, thieves tools, dark common clothes with hood, pouch with 15 gp",
+      "source": "PHB"
+    },
+    "Entertainer": {
+      "skill_proficiencies": [
+        "Acrobatics",
+        "Performance"
+      ],
+      "tool_proficiencies": [
+        "Disguise kit",
+        "Musical instrument (one)"
+      ],
+      "languages": 0,
+      "feature": "By Popular Demand",
+      "equipment": "Musical instrument, favor of an admirer, costume, pouch with 15 gp",
+      "source": "PHB"
+    },
+    "Folk Hero": {
+      "skill_proficiencies": [
+        "Animal Handling",
+        "Survival"
+      ],
+      "tool_proficiencies": [
+        "Vehicles (land)",
+        "Artisan tools (one)"
+      ],
+      "languages": 0,
+      "feature": "Rustic Hospitality",
+      "equipment": "Artisan tools, shovel, iron pot, common clothes, pouch with 10 gp",
+      "source": "PHB"
+    },
+    "Guild Artisan": {
+      "skill_proficiencies": [
+        "Insight",
+        "Persuasion"
+      ],
+      "tool_proficiencies": [
+        "Artisan tools (one)"
+      ],
+      "languages": 1,
+      "feature": "Guild Membership",
+      "equipment": "Artisan tools, letter of introduction, travel clothes, pouch with 15 gp",
+      "source": "PHB"
+    },
+    "Hermit": {
+      "skill_proficiencies": [
+        "Medicine",
+        "Religion"
+      ],
+      "tool_proficiencies": [
+        "Herbalism kit"
+      ],
+      "languages": 1,
+      "feature": "Discovery",
+      "equipment": "Scroll case, winter blanket, common clothes, herbalism kit, pouch with 5 gp",
+      "source": "PHB"
+    },
+    "Noble": {
+      "skill_proficiencies": [
+        "History",
+        "Persuasion"
+      ],
+      "tool_proficiencies": [
+        "Gaming set (one)"
+      ],
+      "languages": 1,
+      "feature": "Position of Privilege",
+      "equipment": "Signet ring, scroll of pedigree, fine clothes, purse with 25 gp",
+      "source": "PHB"
+    },
+    "Outlander": {
+      "skill_proficiencies": [
+        "Athletics",
+        "Survival"
+      ],
+      "tool_proficiencies": [
+        "Musical instrument (one)"
+      ],
+      "languages": 0,
+      "feature": "Wanderer",
+      "equipment": "Staff, hunting trap, trophy from an animal, leather armor, travelers clothes, pouch with 10 gp",
+      "source": "PHB"
+    },
+    "Sage": {
+      "skill_proficiencies": [
+        "Arcana",
+        "History"
+      ],
+      "tool_proficiencies": [],
+      "languages": 2,
+      "feature": "Researcher",
+      "equipment": "Bottle of ink, quill, small knife, letter with a question, common clothes, pouch with 10 gp",
+      "source": "PHB"
+    },
+    "Sailor": {
+      "skill_proficiencies": [
+        "Athletics",
+        "Perception"
+      ],
+      "tool_proficiencies": [
+        "Vehicles (water)",
+        "Navigators tools"
+      ],
+      "languages": 0,
+      "feature": "Ship Passage",
+      "equipment": "Belaying pin, sailors clothes, rope, pouch with 10 gp",
+      "source": "PHB"
+    },
+    "Soldier": {
+      "skill_proficiencies": [
+        "Athletics",
+        "Intimidation"
+      ],
+      "tool_proficiencies": [
+        "Gaming set (one)",
+        "Vehicles (land)"
+      ],
+      "languages": 0,
+      "feature": "Military Rank",
+      "equipment": "Insignia of rank, trophy from a fallen enemy, dagger, common clothes, pouch with 10 gp",
+      "source": "PHB"
+    },
+    "Urchin": {
+      "skill_proficiencies": [
+        "Sleight of Hand",
+        "Stealth"
+      ],
+      "tool_proficiencies": [
+        "Disguise kit",
+        "Thieves tools"
+      ],
+      "languages": 0,
+      "feature": "City Secrets",
+      "equipment": "Small knife, map of the city, pet mouse, token to remember parents, common clothes, pouch with 10 gp",
+      "source": "PHB"
+    }
+  }
+}

@@ -1,0 +1,195 @@
+{
+  "_meta": {
+    "edition": "D&D 5e (Official Sourcebooks)",
+    "description": "All official classes and subclasses beyond PHB, from Xanathar, Tasha, Eberron, etc."
+  },
+  "classes": {
+    "Artificer": {
+      "source": "Tasha's Cauldron of Everything",
+      "hit_dice": "d8",
+      "saving_throws": [
+        "intelligence",
+        "constitution"
+      ],
+      "found_via": "manual"
+    }
+  },
+  "subclasses": {
+    "Battle Master": {
+      "parent_class": "Fighter",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Arcane Archer": {
+      "parent_class": "Fighter",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Cavalier": {
+      "parent_class": "Fighter",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Samurai": {
+      "parent_class": "Fighter",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Forge Domain": {
+      "parent_class": "Cleric",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Grave Domain": {
+      "parent_class": "Cleric",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Gloom Stalker": {
+      "parent_class": "Ranger",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Horizon Walker": {
+      "parent_class": "Ranger",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Monster Slayer": {
+      "parent_class": "Ranger",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Swashbuckler": {
+      "parent_class": "Rogue",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Mastermind": {
+      "parent_class": "Rogue",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Scout": {
+      "parent_class": "Rogue",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Shadow Magic": {
+      "parent_class": "Sorcerer",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Storm Sorcery": {
+      "parent_class": "Sorcerer",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Hexblade": {
+      "parent_class": "Warlock",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Celestial": {
+      "parent_class": "Warlock",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Drunken Master": {
+      "parent_class": "Monk",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Kensei": {
+      "parent_class": "Monk",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Oath of Conquest": {
+      "parent_class": "Paladin",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Oath of Redemption": {
+      "parent_class": "Paladin",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "War Magic": {
+      "parent_class": "Wizard",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Lore Mastery": {
+      "parent_class": "Wizard",
+      "source": "Xanathar's Guide to Everything"
+    },
+    "Artillerist": {
+      "parent_class": "Artificer",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Alchemist": {
+      "parent_class": "Artificer",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Armorer": {
+      "parent_class": "Artificer",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Circle of Stars": {
+      "parent_class": "Druid",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Circle of Wildfire": {
+      "parent_class": "Druid",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Psi Warrior": {
+      "parent_class": "Fighter",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Rune Knight": {
+      "parent_class": "Fighter",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Way of Mercy": {
+      "parent_class": "Monk",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Way of Astral Self": {
+      "parent_class": "Monk",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Oath of Glory": {
+      "parent_class": "Paladin",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Fey Wanderer": {
+      "parent_class": "Ranger",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Swarmkeeper": {
+      "parent_class": "Ranger",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Soulknife": {
+      "parent_class": "Rogue",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Phantom": {
+      "parent_class": "Rogue",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Clockwork Soul": {
+      "parent_class": "Sorcerer",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Order Domain": {
+      "parent_class": "Cleric",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Peace Domain": {
+      "parent_class": "Cleric",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Fathomless": {
+      "parent_class": "Warlock",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Genie": {
+      "parent_class": "Warlock",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Bladesinging": {
+      "parent_class": "Wizard",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Chronurgy Magic": {
+      "parent_class": "Wizard",
+      "source": "Tasha's Cauldron of Everything"
+    },
+    "Graviturgy Magic": {
+      "parent_class": "Wizard",
+      "source": "Tasha's Cauldron of Everything"
+    }
+  }
+}
