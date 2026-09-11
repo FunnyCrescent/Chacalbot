@@ -57,6 +57,7 @@ from libs.handlers.engine import (  # noqa: F401
 from libs.handlers.lobby_cmds import (  # noqa: F401
     new_cmd,
     join_cmd,
+    join_confirm_callback,
     leave_cmd,
     players_cmd,
 )

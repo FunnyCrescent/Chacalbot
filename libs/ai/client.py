@@ -1,4 +1,15 @@
-"""OpenAIClient — universal OpenAI-compatible async HTTP client."""
+"""OpenAIClient — universal OpenAI-compatible async HTTP client.
+
+ИТЕРАЦИЯ 10 (Раздел 8): трёхуровневый перебор провайдер → модели БЕЗ памяти
+между запросами. Каждый вызов chat()/embed() начинает перебор заново с
+провайдера №1 / модели №1 (см. config_legacy.get_providers_for_role).
+Переключение на следующую пару — при 401/402/403 или после исчерпания
+ретраев (429/5xx/сеть). 400/404 — ошибка ЗАПРОСА, не провайдера — сразу наружу.
+
+ИТЕРАЦИЯ 10 (Раздел 6): после каждого успешного вызова читаем
+response["usage"]["total_tokens"] и отдаём в usage_ledger (реальное
+списание токенов биллингом).
+"""
 import json
 import logging
 import asyncio
@@ -8,6 +19,7 @@ import aiohttp
 
 from libs.config_legacy import (
     OPENAI_BASE_URL, OPENAI_API_KEY, EMBEDDING_ENDPOINT, get_thinking_payload,
+    get_providers_for_role, PROVIDER_SWITCH_STATUSES,
 )
 from libs.proxy_helper import aiohttp_session_kwargs, aiohttp_request_kwargs
 
@@ -31,6 +43,34 @@ class ApiError(Exception):
         if self.trace_id:
             return f"API {self.status}: {self.args[0]} (trace_id={self.trace_id})"
         return f"API {self.status}: {self.args[0]}"
+
+
+class AllProvidersExhausted(Exception):
+    """Раздел 8: все пары провайдер+модель из конфигурации роли перепробованы —
+    ни одна не сработала. Сообщение — человекочитаемое, для пользователя."""
+    def __init__(self, role: str, attempts: int, last_error: Optional[Exception] = None):
+        self.role = role
+        self.attempts = attempts
+        self.last_error = last_error
+        super().__init__(
+            f"LLM-провайдеры для роли '{role}' исчерпаны ({attempts} попыток). "
+            f"Последняя ошибка: {last_error}"
+        )
+
+
+class _ProviderSwitch(Exception):
+    """Internal signal: эта пара провайдер+модель провалилась ошибкой, которая
+    ДОСТОЙНА переключения (401/402/403 или исчерпание ретраев). Ловится
+    вложенным циклом chat()/embed() и приводит к следующей модели/провайдеру.
+    Наружу никогда не выходит — наружу выходит AllProvidersExhausted или
+    исходная непереключаемая ошибка."""
+    def __init__(self, provider_name: str, model: str, reason: str,
+                 original: Optional[Exception] = None):
+        self.provider_name = provider_name
+        self.model = model
+        self.reason = reason
+        self.original = original
+        super().__init__(f"{provider_name}/{model}: {reason}")
 
 
 def _parse_api_error_body(error_text: str) -> Dict[str, Optional[str]]:
@@ -78,7 +118,7 @@ class OpenAIClient:
 
     def __init__(self, model: str, temperature: float = 0.8, max_tokens: int = 4096,
                  base_url: str = None, api_key: str = None, role: str = ""):
-        self.model = model
+        self.model = model            # дефолт; при LLM_PROVIDERS перекрывается per-паре
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.base_url = (base_url or OPENAI_BASE_URL).rstrip("/")
@@ -94,52 +134,113 @@ class OpenAIClient:
             "X-Title": "D&D Dark Fantasy Bot",
         }
 
+    def _headers_for(self, api_key: str) -> Dict[str, str]:
+        """Раздел 8: Authorization строится по api_key КОНКРЕТНОГО провайдера."""
+        if not api_key or api_key == self.api_key:
+            return self.headers
+        headers = dict(self.headers)
+        headers["Authorization"] = f"Bearer {api_key}"
+        return headers
+
+    def _report_usage(self, data: Dict, model: str) -> None:
+        """Раздел 6: достать usage.total_tokens из ответа и отдать в usage_ledger.
+        Не бросает исключений (биллинг не должен ломать игру)."""
+        try:
+            usage = data.get("usage") or {}
+            total = int(usage.get("total_tokens") or 0)
+        except (TypeError, ValueError, AttributeError):
+            return
+        if total <= 0:
+            return
+        try:
+            from libs.ai.usage_ledger import record
+            record(self.role, model, total)
+        except Exception:
+            pass
+
     async def chat(self, messages: List[Dict], system_prompt: Optional[str] = None,
                    tools: Optional[List[Dict]] = None, tool_choice: Optional[str] = "auto",
                    max_tokens: Optional[int] = None, retries: int = 3) -> Dict:
-        """Call /chat/completions with retries.
+        """Call /chat/completions with retries + provider/model fallback.
 
-        BUG #6 + #13 FIX:
-        - HTTP 429 / 500 / 502 / 503 / 504 are now RETRIED (with exponential backoff
-          and a cap of 30s between attempts). Previously 500 errors raised immediately,
-          which propagated as `*[Ошибка Мастера: API 500: ...]*` into the chat with
-          the trace_id buried in the error string.
-        - The `trace_id` field (if present in the error JSON body) is extracted and
-          logged separately at ERROR level so it can be cross-referenced with the
-          LLM provider's support team.
-        - Timeouts (network-side) are still retried, just like before.
-        - The full error body is parsed for a human-readable message and the
-          user-facing error message is short and informative (no leaked JSON dump).
+        BUG #6 + #13 FIX: HTTP 429/5xx retried with exponential backoff; trace_id
+        extracted from the error body and logged separately.
+
+        ИТЕРАЦИЯ 10 (Раздел 8): поверх retry-цикла — вложенный перебор
+        провайдер → модели из статической конфигурации роли (LLM_PROVIDERS /
+        <ROLE>_PROVIDERS). КАЖДЫЙ вызов начинает перебор ЗАНОВО с пары №1 —
+        никакого состояния между запросами. Переключение пары: 401/402/403
+        или исчерпание ретраев (429/5xx/сеть). 400/404 — ошибка запроса —
+        сразу наружу, перебор не продолжается.
         """
         # Trim messages to avoid payload bloat (keep last 25 + system).
         # Note: this is a defensive trim — process_master_turn already trims to 30.
         trimmed_messages = messages[-25:] if len(messages) > 25 else messages
 
-        payload = {
-            "model": self.model,
+        base_payload = {
             "messages": [],
             "temperature": self.temperature,
             "max_tokens": max_tokens or self.max_tokens,
             "stream": False,
         }
         if system_prompt:
-            payload["messages"].append({"role": "system", "content": system_prompt})
-        payload["messages"].extend(trimmed_messages)
+            base_payload["messages"].append({"role": "system", "content": system_prompt})
+        base_payload["messages"].extend(trimmed_messages)
         if tools:
-            payload["tools"] = tools
-            payload["tool_choice"] = tool_choice
+            base_payload["tools"] = tools
+            base_payload["tool_choice"] = tool_choice
         # Thinking mode (config.json → thinking.style). Мержится в корень payload:
         # {"reasoning": {"enabled": true}} | {"chat_template_kwargs": {"enable_thinking": true}}
         # | {"thinking": {"type": "enabled"}} — зависит от агрегатора.
         if self.thinking_payload:
-            payload.update(self.thinking_payload)
+            base_payload.update(self.thinking_payload)
+
+        providers = get_providers_for_role(
+            self.role, default_model=self.model,
+            default_base_url=self.base_url, default_api_key=self.api_key)
+
+        last_switch: Optional[_ProviderSwitch] = None
+        attempts = 0
+        for provider in providers:
+            for model in provider["models"]:
+                attempts += 1
+                payload = dict(base_payload)
+                payload["model"] = model
+                try:
+                    result = await self._chat_once(provider, model, payload, retries)
+                    # Раздел 8: логируем финальную пару, на которой запрос СРАБОТАЛ —
+                    # без этого не видно, что «провайдер №1 стабильно проваливается».
+                    logger.info(
+                        f"[chat] OK role={self.role} provider={provider['name']} model={model}"
+                    )
+                    return result
+                except _ProviderSwitch as sw:
+                    last_switch = sw
+                    logger.warning(
+                        f"[chat] provider switch: role={self.role} "
+                        f"provider={provider['name']} model={model} → {sw.reason}"
+                    )
+                    continue
+
+        raise AllProvidersExhausted(self.role, attempts, last_switch or None)
+
+    async def _chat_once(self, provider: Dict, model: str, payload: Dict,
+                         retries: int) -> Dict:
+        """ОДНА пара провайдер+модель: существующий retry/backoff-цикл.
+
+        Успех → полный JSON-ответ. Ошибка, достойная переключения →
+        _ProviderSwitch. Ошибка запроса (400/404/...) → исходное исключение
+        наружу (перебор НЕ продолжается). Сетевые/неожиданные ошибки внутри
+        ретраев обрабатываются как раньше.
+        """
+        base_url = provider["base_url"]
+        headers = self._headers_for(provider.get("api_key", ""))
 
         # Log payload size for debugging
         raw_payload = json.dumps(payload, ensure_ascii=False)
         payload_size = len(raw_payload.encode('utf-8'))
-        logger.info(f"[chat] Payload size: {payload_size} bytes, model: {self.model}, messages: {len(payload['messages'])}")
-        # Truncate to 4000 chars to avoid log bloat — full payload only matters for
-        # repro, and we already log payload_size above.
+        logger.info(f"[chat] Payload size: {payload_size} bytes, model: {model}, "
+                    f"provider: {provider['name']}, messages: {len(payload['messages'])}")
         logger.debug(f"[PAYLOAD_RAW] {raw_payload[:4000]}")
 
         # BUG #13: HTTP status codes that should trigger a retry. 429 = rate-limited,
@@ -162,8 +263,8 @@ class OpenAIClient:
                 timeout = aiohttp.ClientTimeout(total=600, connect=30, sock_read=300)
                 async with aiohttp.ClientSession(timeout=timeout, **sess_kwargs) as session:
                     async with session.post(
-                        f"{self.base_url}/chat/completions",
-                        headers=self.headers,
+                        f"{base_url}/chat/completions",
+                        headers=headers,
                         json=payload,
                         **req_kwargs,
                     ) as response:
@@ -189,10 +290,20 @@ class OpenAIClient:
                                     f"(retryable). trace_id={last_trace_id or 'n/a'}: {last_error_msg}"
                                 )
                                 last_error = err
+                            elif response.status in PROVIDER_SWITCH_STATUSES:
+                                # Раздел 8: 401/402/403 — auth/платёж/доступ. Ретраить
+                                # бессмысленно — сразу переключаем пару.
+                                logger.error(
+                                    f"[chat] HTTP {response.status} (provider-level). "
+                                    f"trace_id={last_trace_id or 'n/a'}: {last_error_msg}"
+                                )
+                                raise _ProviderSwitch(
+                                    provider["name"], model,
+                                    f"HTTP {response.status}: {last_error_msg}")
                             else:
-                                # Non-retryable HTTP error (400/401/403/404 etc.) — log
-                                # with trace_id and raise immediately so the user sees
-                                # the real problem, not a misleading "API failed after N attempts".
+                                # Non-retryable HTTP error (400/404/422 etc.) — ошибка
+                                # ЗАПРОСА, не провайдера: перебор не продолжаем, чужой
+                                # провайдер вернёт ту же 400. Наружу — как раньше.
                                 logger.error(
                                     f"[chat] HTTP {response.status} (non-retryable). "
                                     f"trace_id={last_trace_id or 'n/a'}: {last_error_msg}"
@@ -206,7 +317,11 @@ class OpenAIClient:
                         else:
                             # Read response fully with explicit encoding
                             text = await response.text(encoding='utf-8')
-                            return json.loads(text)
+                            data = json.loads(text)
+                            self._report_usage(data, model)
+                            return data
+            except _ProviderSwitch:
+                raise  # не глотать — сигнал переключения выше
             except (aiohttp.ClientError, aiohttp.http_exceptions.TransferEncodingError,
                     aiohttp.ClientPayloadError, ConnectionResetError, asyncio.TimeoutError) as e:
                 # BUG #6: network-side timeouts / connection issues — retry with backoff.
@@ -232,28 +347,67 @@ class OpenAIClient:
                 logger.info(f"[chat] Retrying in {wait}s (attempt {attempt+2}/{retries})")
                 await asyncio.sleep(wait)
 
-        # All retries exhausted — raise a clean, user-facing error with trace_id.
+        # All retries exhausted on THIS provider+model pair — Раздел 8: это
+        # достойно переключения, а не немедленного raise.
         if last_trace_id:
             logger.error(
                 f"[chat] API failed after {retries} attempts. "
                 f"trace_id={last_trace_id} status={last_http_status} msg={last_error_msg}"
             )
-            raise ApiError(
-                status=last_http_status or 0,
-                message=f"LLM-провайдер временно недоступен (trace_id={last_trace_id}). "
-                        f"Попробуйте ещё раз через минуту.",
-                trace_id=last_trace_id,
-                raw=str(last_error),
-            )
-        raise Exception(f"API failed after {retries} attempts: {last_error}")
+            raise _ProviderSwitch(
+                provider["name"], model,
+                f"retries exhausted (HTTP {last_http_status}, "
+                f"trace_id={last_trace_id}): {last_error_msg}")
+        raise _ProviderSwitch(
+            provider["name"], model,
+            f"retries exhausted (network): {last_error}",
+            original=last_error,
+        )
 
     async def embed(self, texts: List[str], retries: int = 2) -> List[List[float]]:
         """Call the /embeddings endpoint. Returns one vector per input text, in order.
         Raises on failure — callers (MemoryStore) are expected to catch and fail soft,
-        since semantic memory is an enhancement, not a hard dependency for the game to run."""
+        since semantic memory is an enhancement, not a hard dependency for the game to run.
+
+        ИТЕРАЦИЯ 10 (Раздел 8): тот же перебор провайдер → модели, что и в chat()
+        (EMBEDDING_PROVIDERS / LLM_PROVIDERS). Без памяти между вызовами.
+        """
         if not texts:
             return []
-        payload = {"model": self.model, "input": texts}
+        base_payload = {"input": texts}
+        providers = get_providers_for_role(
+            self.role, default_model=self.model,
+            default_base_url=self.base_url, default_api_key=self.api_key)
+
+        last_switch: Optional[_ProviderSwitch] = None
+        attempts = 0
+        for provider in providers:
+            for model in provider["models"]:
+                attempts += 1
+                payload = dict(base_payload)
+                payload["model"] = model
+                try:
+                    result = await self._embed_once(provider, model, payload, retries)
+                    logger.info(
+                        f"[embed] OK role={self.role} provider={provider['name']} model={model}"
+                    )
+                    return result
+                except _ProviderSwitch as sw:
+                    last_switch = sw
+                    logger.warning(
+                        f"[embed] provider switch: role={self.role} "
+                        f"provider={provider['name']} model={model} → {sw.reason}"
+                    )
+                    continue
+        raise AllProvidersExhausted(self.role, attempts, last_switch or None)
+
+    async def _embed_once(self, provider: Dict, model: str, payload: Dict,
+                          retries: int) -> List[List[float]]:
+        """Одна пара провайдер+модель для /embeddings (retry внутри).
+        Любое исчерпание ретраев → _ProviderSwitch (embeddings — enhancement,
+        упрощённая классификация уместна: всё равно fail-soft у вызывающих)."""
+        base_url = provider["base_url"]
+        headers = self._headers_for(provider.get("api_key", ""))
         last_error = None
         sess_kwargs = aiohttp_session_kwargs()
         req_kwargs = aiohttp_request_kwargs()
@@ -262,8 +416,8 @@ class OpenAIClient:
                 timeout = aiohttp.ClientTimeout(total=60, connect=15, sock_read=45)
                 async with aiohttp.ClientSession(timeout=timeout, **sess_kwargs) as session:
                     async with session.post(
-                        f"{self.base_url}{EMBEDDING_ENDPOINT}",
-                        headers=self.headers,
+                        f"{base_url}{EMBEDDING_ENDPOINT}",
+                        headers=headers,
                         json=payload,
                         **req_kwargs,
                     ) as response:
@@ -271,6 +425,7 @@ class OpenAIClient:
                             error_text = await response.text()
                             raise Exception(f"Embeddings API {response.status}: {error_text}")
                         data = json.loads(await response.text(encoding="utf-8"))
+                        self._report_usage(data, model)
                         # OpenAI-style: data["data"] is a list of {"embedding": [...], "index": i}
                         items = sorted(data.get("data", []), key=lambda x: x.get("index", 0))
                         return [item["embedding"] for item in items]
@@ -279,7 +434,9 @@ class OpenAIClient:
                 logger.warning(f"[embed] Attempt {attempt+1}/{retries} failed: {e}")
                 if attempt < retries - 1:
                     await asyncio.sleep(1)
-        raise Exception(f"Embeddings API failed after {retries} attempts: {last_error}")
+        raise _ProviderSwitch(
+            provider["name"], model,
+            f"retries exhausted: {last_error}", original=last_error)
 
     async def stream_chat(self, messages: List[Dict], system_prompt: Optional[str] = None):
         trimmed_messages = messages[-25:] if len(messages) > 25 else messages

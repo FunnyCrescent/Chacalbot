@@ -55,6 +55,16 @@ class Bootstrap:
     async def _post_init(self, application: "PTBApplication") -> None:
         logger.info("post_init: loading plugins...")
         await self.manager.setup_all(application)
+        # ИТЕРАЦИЯ 10 (Раздел 7): PluginManager доступен хендлерам через
+        # ctx.bot_data["plugin_manager"]. ЕДИНСТВЕННЫЙ безопасный способ для
+        # libs/handlers/* достать опциональный плагин (например "billing"):
+        #   manager = ctx.bot_data.get("plugin_manager")
+        #   billing = manager.get_plugin("billing") if manager else None
+        # get_plugin() возвращает None, если плагин удалён/выключен — проверка
+        # просто пропускается, бот работает как бесплатный. НИКАКИХ прямых
+        # импортов из plugins.* в libs/handlers — иначе падение всего бота
+        # при удалении папки плагина (ModuleNotFoundError до discover()).
+        application.bot_data["plugin_manager"] = self.manager
         logger.info("post_init: plugins loaded. Load order: %s", self.manager.load_order())
         logger.info(self.manager.status_table())
 

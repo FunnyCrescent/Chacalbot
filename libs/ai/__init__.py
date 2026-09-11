@@ -4,6 +4,7 @@ Backward-compat: `from libs.ai_client import DMEngine, OpenAIClient, ...`
 still works — keep ai_client.py as a shim that re-exports from here.
 """
 from .client import OpenAIClient
+from . import usage_ledger
 from .engine import DMEngine
 from .tools import (
     ROLL_TYPE_ENUM, DICE_TOOLS, GAME_TOOLS, ALL_TOOLS,

@@ -76,6 +76,14 @@ enabled = true
 enabled = true
 # Clean Book Mode (cross-cutting)
 
+[plugins.billing]
+enabled = true
+# ИТЕРАЦИЯ 10 (Разделы 6-7): монетизация. Активен ТОЛЬКО при
+# COMMERCIAL_MODE=true в .env (иначе пассивен — игра бесплатна везде).
+# Удаление папки plugins/billing/ или enabled=false полностью отключает
+# биллинг БЕЗ падения бота (хендлеры через get_plugin("billing") → None).
+# /ychwanegu (пополнение тестерами) + billmode: callbacks + токен-гейт.
+
 [plugins.service]
 enabled = true
 # /cydbwysedd (баланс агрегатора) · /rhwymo + /datgysylltu (персональные бинды)

@@ -165,6 +165,35 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 
 Модели по умолчанию заданы в `libs/config_legacy.py` (`MASTER_MODEL`, `DB_MODEL`, `RENDERER_MODEL`, `MEMORY_MODEL`, `MODER_AI_MODEL` и т.д.). Переопредели их в `.env`, если твой провайдер использует другие ID моделей. Для эмбеддингов (world memory) используется тот же `OPENAI_BASE_URL` + эндпоинт `/embeddings` — работает с OpenAI, OpenRouter, Together, vLLM, LocalAI, LM Studio, Ollama.
 
+### Перебор провайдеров (fallback) — ИТЕРАЦИЯ 10
+
+Можно задать ЦЕПОЧКУ провайдеров: один Host+API = один «провайдер», под ним
+НЕСКОЛЬКО моделей. Пока на текущем провайдере не перепробованы ВСЕ его
+модели — к следующему провайдеру перехода нет. Переключение пары:
+`401/402/403` или исчерпание ретраев (429/5xx/сеть); `400/404` — ошибка
+запроса — сразу наружу. КАЖДЫЙ вызов начинает перебор заново с пары №1 —
+без памяти между запросами (самовосстановление, никакого state-файла).
+
+```bash
+# .env — общий список (для всех ролей)
+LLM_PROVIDERS='[
+  {"name": "openrouter", "base_url": "https://openrouter.ai/api/v1",
+   "api_key": "sk-or-...",
+   "models": ["google/gemma-3-4b-it:free", "google/gemma-3-4b-it"]},
+  {"name": "local", "base_url": "http://localhost:1234/v1",
+   "api_key": "not-needed", "models": ["google/gemma-4-31b-it"]}
+]'
+
+# переопределение под роль: <ROLE>_PROVIDERS
+# (MASTER_PROVIDERS, DB_PROVIDERS, RENDERER_PROVIDERS, MEMORY_PROVIDERS,
+#  EMBEDDING_PROVIDERS, TRANSLATOR_PROVIDERS, NPC_AI_PROVIDERS,
+#  MODER_AI_PROVIDERS, MODER_AI_DISPATCH_PROVIDERS, AUDITOR_PROVIDERS)
+EMBEDDING_PROVIDERS='[{"name":"local","base_url":"http://localhost:8080/v1","api_key":"x","models":["nomic-embed-text"]}]'
+```
+
+Если ничего не задано — используется одиночный провайдер из
+`OPENAI_BASE_URL`/`OPENAI_API_KEY` и модель роли (прежнее поведение).
+
 ## Структура проекта
 
 ```
@@ -236,6 +265,42 @@ MD/ready.md          # переключатель коммита: False → True
    сессии (`/dileu` — вместе с .db).
 
 Инициализация/статус: `python3 scripts/init_md.py`.
+
+## 💰 Коммерческий режим (плагин billing) — ИТЕРАЦИЯ 10
+
+Вся монетизация живёт в плагине `plugins/billing/` и включается флагом:
+
+```bash
+# .env
+COMMERCIAL_MODE=false      # false/не задан = игра бесплатна ВЕЗДЕ (по умолчанию)
+TESTERS=123456789,987654321  # де-факто модераторы: безлимит + игра в ЛС + /ychwanegu
+MAIN_CHAT_ID=-1001234567890  # «общий чат» — бесплатная игра в commercial-режиме
+TOKEN_GRANT_AMOUNT=30000000  # стартовый грант игроку (один раз за аккаунт)
+```
+
+`COMMERCIAL_MODE=true`:
+- **Общий чат** (`MAIN_CHAT_ID`) — игра бесплатна, без гейта.
+- **ЛС** — играть нельзя всем, кроме тестеров (у не-тестеров работают только
+  `/creu`, `/cyfieithu`, `/gwneud`).
+- **Другие чаты** — токен-гейт с РЕАЛЬНЫМ списанием: `OpenAIClient` читает
+  `usage.total_tokens` каждого LLM-вызова, сумма за раунд (Мастер + DB-Bot +
+  Renderer + NPC-AI + ...) списывается в конце раунда по выбранному режиму:
+  - `split` — поровну между активными игроками;
+  - `creator_pays` — полностью платит создатель.
+- Режим оплаты выбирается в меню `/newydd` ОДИН раз и не меняется; `/ymuno`
+  требует подтверждения (Да/Нет).
+- Грант 30 000 000 выдаётся игроку РОВНО ОДИН РАЗ за аккаунт (глобально по
+  `user_id`, не пересоздаётся при выходе/входе — эксплойт «вышел-зашёл»
+  закрыт). Баланс и журнал операций: `data/billing.db`.
+- При нулевом балансе — жёсткая блокировка хода с явным сообщением (не баг);
+  пополнение — пока вручную тестерами: `/ychwanegu <user_id> <сумма>`
+  (только TESTERS; каждое пополнение логируется в `ADMIN_CHAT_ID`).
+
+**Удаляемость плагинов:** удаление папки `plugins/billing/` (или
+`enabled = false` в plugins.toml) полностью отключает биллинг БЕЗ падения
+бота — хендлеры достают плагин через `PluginManager.get_plugin("billing")`
+и при `None` пропускают проверки. Прямых импортов плагинов из `libs/` нет —
+это общее правило проекта для любой будущей точки расширения.
 
 ## Включение/выключение плагинов
 

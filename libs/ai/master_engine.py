@@ -258,7 +258,19 @@ class MasterEngineMixin:
                         elif tool_name == "dechrauymladd":
                             participants = args.get("participants", [])
                             reason = args.get("reason", "")
-                            audit = f"[MASTER TOOL] dechrauymladd: participants={participants} reason='{reason}'"
+                            # ИТЕРАЦИЯ 10 (Раздел 4): тай-брейк инициативы — Мастер
+                            # фиксирует им то, что уже сказал в нарративе («Хравна
+                            # ходит первой» при равных инициативах).
+                            raw_priorities = args.get("priorities") or {}
+                            priorities = {}
+                            if isinstance(raw_priorities, dict):
+                                for p_name, p_val in raw_priorities.items():
+                                    try:
+                                        priorities[str(p_name)] = int(p_val)
+                                    except (TypeError, ValueError):
+                                        continue
+                            audit = (f"[MASTER TOOL] dechrauymladd: participants={participants} "
+                                     f"reason='{reason}' priorities={priorities}")
                             logger.info(audit)
                             tool_audit.append(audit)
 
@@ -302,7 +314,13 @@ class MasterEngineMixin:
 
                             if combat_starter is not None:
                                 try:
-                                    combat_result_text = await combat_starter(participants, reason, pc_initiatives=pc_initiatives)
+                                    combat_result_text = await combat_starter(
+                                        participants, reason,
+                                        pc_initiatives=pc_initiatives, priorities=priorities)
+                                except TypeError:
+                                    # Back-compat: старый combat_starter без kwargs priorities
+                                    combat_result_text = await combat_starter(
+                                        participants, reason, pc_initiatives=pc_initiatives)
                                 except Exception as e:
                                     logger.error(f"combat_starter failed: {e}")
                                     combat_result_text = f"Error starting combat: {e}"

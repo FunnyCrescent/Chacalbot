@@ -57,13 +57,17 @@ class CombatRepoMixin:
 
     def add_combatant(self, combatant: Combatant):
         with self._connect() as conn:
-            conn.execute("""INSERT OR REPLACE INTO combatants VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            # ИТЕРАЦИЯ 10: 18-я колонка priority (тай-брейк инициативы, Раздел 4).
+            # ALTER TABLE ADD COLUMN добавляет её ПОСЛЕДНЕЙ — порядок значений
+            # совпадает с порядком колонок и в свежей, и в мигрированной БД.
+            conn.execute("""INSERT OR REPLACE INTO combatants VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                         (combatant.id, combatant.encounter_id, combatant.session_id,
                          combatant.name, combatant.entity_type, combatant.player_id,
                          combatant.initiative, combatant.natural_roll, combatant.dex_mod,
                          combatant.hp, combatant.max_hp, combatant.ac,
                          combatant.current_conditions, 1 if combatant.is_alive else 0,
-                         combatant.traits, combatant.brief_context, combatant.sort_order))
+                         combatant.traits, combatant.brief_context, combatant.sort_order,
+                         getattr(combatant, "priority", 0) or 0))
 
 
     def get_combatants(self, encounter_id: str) -> List[Combatant]:
@@ -75,7 +79,8 @@ class CombatRepoMixin:
                 entity_type=r["entity_type"], player_id=r["player_id"], initiative=r["initiative"],
                 natural_roll=r["natural_roll"], dex_mod=r["dex_mod"], hp=r["hp"], max_hp=r["max_hp"],
                 ac=r["ac"], current_conditions=r["current_conditions"] or "[]", is_alive=bool(r["is_alive"]),
-                traits=r["traits"] or "", brief_context=r["brief_context"] or "", sort_order=r["sort_order"]
+                traits=r["traits"] or "", brief_context=r["brief_context"] or "", sort_order=r["sort_order"],
+                priority=(r["priority"] if "priority" in r.keys() else 0) or 0
             ) for r in rows]
 
 
@@ -88,7 +93,8 @@ class CombatRepoMixin:
                 entity_type=r["entity_type"], player_id=r["player_id"], initiative=r["initiative"],
                 natural_roll=r["natural_roll"], dex_mod=r["dex_mod"], hp=r["hp"], max_hp=r["max_hp"],
                 ac=r["ac"], current_conditions=r["current_conditions"] or "[]", is_alive=bool(r["is_alive"]),
-                traits=r["traits"] or "", brief_context=r["brief_context"] or "", sort_order=r["sort_order"]
+                traits=r["traits"] or "", brief_context=r["brief_context"] or "", sort_order=r["sort_order"],
+                priority=(r["priority"] if "priority" in r.keys() else 0) or 0
             ) for r in rows]
 
 
@@ -115,13 +121,18 @@ class CombatRepoMixin:
 
 
     def get_initiative_order(self, encounter_id: str) -> List[Dict]:
-        """Get full initiative order sorted by initiative descending."""
+        """Get full initiative order sorted by initiative descending.
+
+        ИТЕРАЦИЯ 10 (Раздел 4): тай-брейк при равных инициативах — priority ASC
+        (меньше = раньше). В нарративе игроки видят сырую инициативу; priority
+        — служебное поле Мастера из tool-вызова dechrauymladd."""
         with self._connect() as conn:
-            rows = conn.execute("""SELECT name, entity_type, player_id, initiative, natural_roll, sort_order
+            rows = conn.execute("""SELECT name, entity_type, player_id, initiative, natural_roll, sort_order, priority
                            FROM combatants WHERE encounter_id=? AND is_alive=1
-                           ORDER BY initiative DESC, natural_roll DESC, sort_order DESC""", (encounter_id,)).fetchall()
+                           ORDER BY initiative DESC, priority ASC, natural_roll DESC, sort_order DESC""", (encounter_id,)).fetchall()
             return [{"name": r["name"], "entity_type": r["entity_type"], "player_id": r["player_id"],
-                     "initiative": r["initiative"], "natural_roll": r["natural_roll"], "sort_order": r["sort_order"]} for r in rows]
+                     "initiative": r["initiative"], "natural_roll": r["natural_roll"], "sort_order": r["sort_order"],
+                     "priority": (r["priority"] if "priority" in r.keys() else 0) or 0} for r in rows]
 
     # ═══════════════════════════════════════════════════════════
     # PLAYER LANGUAGES (translation)

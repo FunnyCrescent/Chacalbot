@@ -274,7 +274,10 @@ class ResolutionMixin:
                 verified_rolls=verified_rolls,
                 player_roll_requester=player_roll_requester,
                 memory_digest=memory_digest,
-                combat_starter=lambda participants, reason, **kwargs: self._combat_starter_async(session_id, participants, reason, pc_initiatives=kwargs.get("pc_initiatives")),
+                combat_starter=lambda participants, reason, **kwargs: self._combat_starter_async(
+                    session_id, participants, reason,
+                    pc_initiatives=kwargs.get("pc_initiatives"),
+                    priorities=kwargs.get("priorities")),
                 combat_ender=lambda reason: self._combat_ender_async(session_id, reason),
                 # БОЙ-FIX v2: Мастер может добавить персонажа-игрока в идущий бой
                 combat_joiner=lambda name: self._combat_joiner_async(session_id, name),

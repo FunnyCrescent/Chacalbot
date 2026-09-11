@@ -69,6 +69,7 @@ from libs.handlers.engine import _track_round_messages_with_fallback
 from libs.handlers.utils import get_session
 from libs.handlers.utils import send_safe
 from libs.handlers.utils import world_gen_guard
+from libs.ai import usage_ledger
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -465,6 +466,8 @@ async def roll_check_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not session:
         await send_safe(update, "Нет сессии.")
         return
+    # ИТЕРАЦИЯ 10 (Раздел 6): LLM-fallback броска тоже атрибутируется сессии.
+    usage_ledger.bind_session(session.id)
     if not ctx.args:
         await send_safe(update, "Использование: `/rholio атлетика` или `/rholio спасбросок телосложения`")
         return

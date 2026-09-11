@@ -37,6 +37,11 @@ class Session:
     currency_super_plural: str = ""
     currency_super_symbol: str = ""
     currency_super_value: float = 10.0  # How many primary per 1 super
+    # ИТЕРАЦИЯ 10 (Разделы 6-7): способ оплаты сессии. Выбирается ОДИН раз в
+    # меню /newydd и фиксируется на всю жизнь сессии — менять нельзя, кто бы
+    # ни заходил/выходил позже. "split" = стоимость раунда делится поровну
+    # между активными игроками; "creator_pays" = полностью платит создатель.
+    billing_mode: str = "split"
     created_at: str = ""
     updated_at: str = ""
 
@@ -566,6 +571,11 @@ class Combatant:
     traits: str = ""  # JSON: personality traits for AI NPC
     brief_context: str = ""  # short context for AI NPC decisions
     sort_order: int = 0  # position in initiative order
+    # ИТЕРАЦИЯ 10 (Раздел 4): тай-брейк инициативы при РАВНЫХ значениях.
+    # МЕНЬШЕ = ходит РАНЬШЕ. Виден только системе (в нарративе игроки видят
+    # сырую инициативу без учёта priority — «оба 15», но Мастер сказал, кто
+    # первый — это фиксируется явным полем, а не трюком +1/+2 к числу).
+    priority: int = 0
 
 @dataclass
 class PlayerLanguage:

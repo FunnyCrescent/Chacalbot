@@ -62,8 +62,41 @@ from libs.handlers._state import (
 
 logger = logging.getLogger(__name__)
 
+
+def _char_change_blocked(db, session, user_id: int) -> Optional[str]:
+    """ИТЕРАЦИЯ 10 (Раздел 2): смена персонажа запрещена после создания мира.
+
+    Правило: смена разрешена — (а) новый игрок (персонажа ещё нет в сессии);
+    (б) предыдущий персонаж МЁРТВ (hp <= 0). До смерти — нельзя, если мир уже
+    сгенерирован (персистентный маркер — session.current_scene, см. utils.
+    is_world_created). До генерации мира перегенерация листа разрешена —
+    игроки грузят листы ДО /dndcychwyn и могут исправлять опечатки.
+
+    Возвращает текст отказа или None, если смена разрешена."""
+    try:
+        existing = db.get_character_by_player(user_id, session.id)
+    except Exception:
+        return None  # поверхность БД в тестах может отличаться — не блокируем
+    if not existing:
+        return None  # новый игрок — можно
+    # Мир создан?
+    world_ready = bool((getattr(session, "current_scene", "") or "").strip())
+    if not world_ready:
+        return None  # мир ещё не создан — менять можно
+    hp = getattr(existing, "hp", 0) or 0
+    alive_flag = getattr(existing, "is_alive", True)
+    if hp > 0 and alive_flag:
+        return (
+            "❌ **Смена персонажа запрещена.**\n\n"
+            f"Мир уже создан, и твой персонаж **{existing.name}** жив (HP: {hp}). "
+            "Заменить персонажа можно только после его смерти.\n\n"
+            "Продолжай играть этим персонажем — а если он погиб, примени нового командой `/cymeriad`."
+        )
+    return None
+
 # Кросс-доменные импорты
 from libs.handlers.engine import _db_busy_guard
+from libs.ai import usage_ledger
 from libs.handlers.settings_cmds import _get_all_categories
 from libs.handlers.settings_cmds import _get_setting_info
 from libs.handlers.settings_cmds import _get_settings_in_category
@@ -260,6 +293,13 @@ async def _process_character_upload(update: Update, ctx: ContextTypes.DEFAULT_TY
             # ── Group mode: save to session ──
             session = get_session(chat_id)
             db = db_manager.get_db(session.id)
+
+            # ИТЕРАЦИЯ 10 (Раздел 2): смена персонажа запрещена после создания мира
+            # (если у игрока есть живой персонаж). Блокируем ДО сохранения.
+            blocked = _char_change_blocked(db, session, user.id)
+            if blocked:
+                await send_safe(update, blocked)
+                return
 
             db.save_character_sheet(session.id, user.id, sheet_text, file_name)
 
@@ -499,6 +539,16 @@ async def _apply_saved_char_to_session(update: Update, query, user, session,
     if not player:
         await query.edit_message_text(
             "⚠️ Ты не в этой сессии. Сначала <code>/ymuno</code> в чате сессии.",
+            parse_mode="HTML",
+        )
+        return
+
+    # ИТЕРАЦИЯ 10 (Раздел 2): смена персонажа запрещена после создания мира,
+    # если у игрока есть живой персонаж. Разрешены: новый игрок / мёртвый персонаж.
+    blocked = _char_change_blocked(db, session, user.id)
+    if blocked:
+        await query.edit_message_text(
+            blocked.replace("**", "<b>").replace("/cymeriad", "<code>/cymeriad</code>"),
             parse_mode="HTML",
         )
         return
@@ -925,6 +975,9 @@ async def dndstart_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not session or not sessions.is_creator(user.id, session.id):
         await send_safe(update, "❌ Только Админ может начать игру.")
         return
+    # ИТЕРАЦИЯ 10 (Раздел 6): генерация мира — дорогая по токенам операция,
+    # её usage тоже атрибутируется сессии (списание в конце первого раунда).
+    usage_ledger.bind_session(session.id)
 
     db = db_manager.get_db(session.id)
     chars = db.get_session_characters(session.id)

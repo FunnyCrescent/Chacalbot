@@ -75,8 +75,10 @@ from libs.handlers.engine import _track_pending_combat_message
 from libs.handlers.engine import _track_round_messages_with_fallback
 from libs.handlers.utils import get_session
 from libs.handlers.utils import send_safe
-from libs.handlers.utils import world_gen_guard
+from libs.handlers.utils import world_gen_guard, has_any_round_history
 from libs.handlers.utils import capture_thread_id
+from libs.handlers.utils import get_billing_plugin
+from libs.ai import usage_ledger
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -91,6 +93,8 @@ async def ask_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not session:
         await send_safe(update, "Нет сессии.")
         return
+    # ИТЕРАЦИЯ 10 (Раздел 6): usage вопроса тоже атрибутируется сессии.
+    usage_ledger.bind_session(session.id)
     if not ctx.args:
         await send_safe(update, "Использование: `/gofyn Как выглядит этот NPC?`")
         return
@@ -236,6 +240,8 @@ async def dbask_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not session:
         await send_safe(update, "Нет сессии.")
         return
+    # ИТЕРАЦИЯ 10 (Раздел 6): usage апелляции атрибутируется сессии.
+    usage_ledger.bind_session(session.id)
     if await _db_busy_guard(update, session):
         return
     if not ctx.args:
@@ -250,6 +256,19 @@ async def dbask_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     # BUG 3 FIX: апелляции к БД до/во время генерации мира не имеют смысла.
     if await world_gen_guard(update, session):
+        return
+
+    # ИТЕРАЦИЯ 10 (Раздел 3): апелляция без единого хода — отказ.
+    # world_gen_guard пропускает сразу после генерации мира, но между «мир
+    # создан» и «первый ход игрока» есть окно, когда истории ходов ещё нет
+    # вообще — DB-боту не на что опираться (не замена guard'а, а дополнительная
+    # более узкая проверка СТРОГО после него).
+    if not has_any_round_history(session.id):
+        await send_safe(update,
+            "🔒 **Апелляция пока невозможна.** В сессии ещё не было ни одного хода — "
+            "DB-боту не на что опираться.\n\n"
+            "Напиши `Дн. твоё действие` и сделай хотя бы один ход — после этого апелляции заработают."
+        )
         return
 
     appeal = " ".join(ctx.args)
@@ -365,6 +384,14 @@ async def _process_dn_action(update: Update, ctx: ContextTypes.DEFAULT_TYPE, act
         await send_safe(update, "⚠️ Нет активной сессии в этом чате.")
         return
 
+    # ИТЕРАЦИЯ 10 (Раздел 6): атрибуция usage раунда этой сессии. Все задачи,
+    # созданные ниже через asyncio.create_task (боевой цикл, DB-Bot background,
+    # NPC-резолвы, переводчик), наследуют этот контекст — сумма usage со ВСЕХ
+    # ролей ляжет на сессию и будет списана в конце раунда (settle_round в
+    # _run_db_bot_background). Без unbind — контекст задачи умирает вместе с
+    # задачей хендлера (PTB создаёт задачу на каждый апдейт).
+    usage_ledger.bind_session(session.id)
+
     # BUG #2: capture the forum/topic thread id from this Дн. message so async
     # background sends (Master narrative, DB-Bot phase, combat loop) can find the
     # right topic later.
@@ -375,6 +402,18 @@ async def _process_dn_action(update: Update, ctx: ContextTypes.DEFAULT_TYPE, act
     if not player:
         await send_safe(update, "⚠️ Ты не в игре. Сначала `/ymuno`")
         return
+
+    # ИТЕРАЦИЯ 10 (Разделы 6-7): токен-гейт перед обработкой хода.
+    # В commercial-режиме: ЛС закрыта для не-тестеров; в платных чатах
+    # проверяется баланс плательщика (по billing_mode сессии). Тестеры
+    # проходят всегда. Плагина нет / COMMERCIAL_MODE=false → проверка
+    # пропускается (бесплатная игра, прежнее поведение).
+    billing = get_billing_plugin(ctx)
+    if billing is not None:
+        allowed, gate_msg = await billing.check_game_allowed(update, ctx, session=session)
+        if not allowed:
+            await send_safe(update, gate_msg)
+            return
 
     # BUG 3 FIX: до или во время генерации мира ходить нельзя — только после начала игры.
     if await world_gen_guard(update, session):

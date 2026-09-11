@@ -633,6 +633,58 @@ async def world_gen_guard(update, session) -> bool:
     return False
 
 
+def get_billing_plugin(ctx) -> Optional[object]:
+    """ИТЕРАЦИЯ 10 (Раздел 7): ЕДИНСТВЕННЫЙ безопасный способ достать
+    опциональный плагин из хендлера.
+
+    Возвращает None, если: ctx нет / bot_data пуст / менеджер не положен
+    bootstrap'ом / плагин billing удалён из plugins/ / выключен в
+    plugins.toml / не загрузился при старте. Во всех случаях вызывающий
+    код просто пропускает проверки — бот работает как бесплатный.
+    НИКОГДА не бросает исключений и НИКОГДА не импортирует plugins.*
+    напрямую (тот падал бы ModuleNotFoundError при удалении папки).
+
+    Usage:
+        billing = get_billing_plugin(ctx)
+        if billing is not None:
+            allowed, msg = await billing.check_game_allowed(update, ctx, session)
+            if not allowed:
+                await send_safe(update, msg)
+                return
+    """
+    try:
+        bot_data = getattr(ctx, "bot_data", None) if ctx else None
+        manager = bot_data.get("plugin_manager") if isinstance(bot_data, dict) else None
+        return manager.get_plugin("billing") if manager else None
+    except Exception as e:
+        logger.debug(f"get_billing_plugin unavailable: {e}")
+        return None
+
+
+def is_world_created(session: Session) -> bool:
+    """ИТЕРАЦИЯ 10 (Раздел 2): персистентный маркер «мир уже сгенерирован».
+
+    world_gen_guard выше использует тот же признак: session.current_scene
+    заполняется ТОЛЬКО в generate_world (см. libs/session/generators.py), т.е.
+    это надёжный персистентный флаг «мир готов» (in-memory
+    is_world_generating — только на время генерации, для этого не годится)."""
+    return bool(session and (getattr(session, "current_scene", "") or "").strip())
+
+
+def has_any_round_history(session_id: str) -> bool:
+    """ИТЕРАЦИЯ 10 (Раздел 3): был ли в сессии хоть один разрешённый ход.
+
+    «Ход» = нарратив Мастера в истории (entry_type="narrative"). Записи
+    "system" ([DNDSTART]/[AUTO_START]) сюда не считаются: между «мир создан»
+    и «первый ход игрока» есть окно, когда нарративов ещё нет вообще —
+    именно его отсекаем. При ошибке чтения истории НЕ блокируем (True)."""
+    try:
+        db = db_manager.get_db(session_id)
+        return bool(db.get_history_by_type(session_id, "narrative", limit=1))
+    except Exception:
+        return True
+
+
 def get_thread_id_for_session(session_id: Optional[str], fallback: int = None) -> Optional[int]:
     """BUG #2: Helper for async/background send paths that don't have a real Update
     to read `message_thread_id` from. Reads the persisted thread_id from the

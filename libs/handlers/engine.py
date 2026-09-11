@@ -29,6 +29,7 @@ from telegram.ext import (
 )
 
 from libs.ai_client import DMEngine, MASTER_PROMPT, MASTER_TOOLS, OpenAIClient, strip_stray_tags
+from libs.ai import usage_ledger
 from libs.character_parser import CharacterParser, ParsedCharacter
 from libs.creu import get_handler as get_creu_handler
 from libs.creu.storage import init_db as init_creu_db, cleanup_stale as creu_cleanup_stale
@@ -415,6 +416,10 @@ async def _start_combat_turn_loop(session_id: str, chat_id: int, bot_obj):
 
     Dead combatants are automatically skipped (get_initiative_order filters is_alive=1).
     Round boundary is announced when current_turn_index wraps around."""
+    # ИТЕРАЦИЯ 10 (Раздел 6): атрибуция usage — боевой цикл может быть создан
+    # НЕ из _process_dn_action (легаси /combat) — привязываем контекст сами.
+    # Без unbind: контекст задачи умирает вместе с задачей-родителем.
+    usage_ledger.bind_session(session_id)
     # Guard: prevent multiple combat loops for the same session
     if _active_combat_loops.get(session_id):
         logger.warning(f"[combat-loop] Loop already active for {session_id}, skipping duplicate")
@@ -1366,6 +1371,27 @@ async def _run_db_bot_background(session_id: str, raw_narrative: str, player_tex
             logger.info(f"[md_store] ready.md применён после раунда (session {session_id})")
     except Exception as e:
         logger.warning(f"[md_store] apply_md_changes_if_ready failed: {e}")
+
+    # ИТЕРАЦИЯ 10 (Разделы 6-7): раунд полностью завершён — СПИСЫВАЕМ ТОКЕНЫ.
+    # Сумма usage со всех ролей раунда (Мастер, DB-Bot, Renderer, NPC-AI,
+    # Moder-AI, Memory, переводчик — копится в usage_ledger по контексту
+    # сессии) списывается с баланса плательщика по session.billing_mode.
+    # Хук — ТОЖЕ СТРОГО один раз (тот же «конец один»: после set_db_busy(False)).
+    # Плагин недоступен (удалён/выключен/COMMERCIAL_MODE=false) → списания нет.
+    try:
+        manager = None
+        bot_data = getattr(ctx, "bot_data", None) if ctx is not None else None
+        if isinstance(bot_data, dict):
+            manager = bot_data.get("plugin_manager")
+        elif bot_obj is not None:
+            app_bd = getattr(getattr(bot_obj, "application", None), "bot_data", None)
+            if isinstance(app_bd, dict):
+                manager = app_bd.get("plugin_manager")
+        billing = manager.get_plugin("billing") if manager else None
+        if billing is not None:
+            await billing.settle_round(session_id, bot_obj=bot_obj, chat_id=chat_id)
+    except Exception as e:
+        logger.warning(f"[billing] settle_round skipped: {e}")
 
     if not bot_obj or not chat_id:
         return

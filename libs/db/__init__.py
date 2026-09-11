@@ -17,9 +17,10 @@ from .database import Database
 from .manager import DatabaseManager
 from .saved_chars import SavedCharsDB
 from .binds_db import BindsDB
+from .billing_repo import BillingRepo
 
 __all__ = [
-    "Database", "DatabaseManager", "SavedCharsDB", "BindsDB",
+    "Database", "DatabaseManager", "SavedCharsDB", "BindsDB", "BillingRepo",
     "Session", "Player", "Character", "HistoryEntry", "QueueState",
     "CharacterSheet", "HpLog", "ConditionEntry", "RestEntry", "GoldEntry",
     "QuestEntry", "GameTime", "FactionEntry", "FactionRelation", "WorldEvent",

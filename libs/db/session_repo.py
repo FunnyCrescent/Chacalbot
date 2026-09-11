@@ -28,11 +28,15 @@ class SessionRepoMixin:
 
     def create_session(self, session: Session) -> Session:
         with self._connect() as conn:
+            # ИТЕРАЦИЯ 10: billing_mode пишется ПРИ СОЗДАНИИ (выбор в меню
+            # /newydd), а не только в update_session — иначе способ оплаты,
+            # выбранный до любых update, терялся бы при перечитывании сессии.
             conn.execute(
-                """INSERT INTO sessions (id, chat_id, name, creator_id, status, current_scene)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
+                """INSERT INTO sessions (id, chat_id, name, creator_id, status, current_scene, billing_mode)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (session.id, session.chat_id, session.name, session.creator_id,
-                 session.status, session.current_scene)
+                 session.status, session.current_scene,
+                 getattr(session, "billing_mode", "split") or "split")
             )
         self.add_journal_entry(session.id, "INSERT", "sessions", session.id, f"Created session {session.name}")
         return session
@@ -89,14 +93,16 @@ class SessionRepoMixin:
                     name = ?, status = ?, current_scene = ?, combat_active = ?,
                     initiative_order = ?, current_turn_index = ?, round_number = ?,
                     autostart = ?, pvp_active = ?, summary = ?, summary_at_count = ?,
-                    genre = ?, message_thread_id = ?, updated_at = CURRENT_TIMESTAMP
+                    genre = ?, message_thread_id = ?,
+                    billing_mode = ?, updated_at = CURRENT_TIMESTAMP
                    WHERE id = ?""",
                 (session.name, session.status, session.current_scene,
                  int(session.combat_active), session.initiative_order,
                  session.current_turn_index, session.round_number,
                  int(session.autostart), int(session.pvp_active), session.summary,
                  session.summary_at_count, session.genre,
-                 int(session.message_thread_id or 0), session.id)
+                 int(session.message_thread_id or 0),
+                 getattr(session, "billing_mode", "split") or "split", session.id)
             )
         self.add_journal_entry(session.id, "UPDATE", "sessions", session.id, "Updated session state")
 
@@ -341,6 +347,7 @@ class SessionRepoMixin:
             summary_at_count=row["summary_at_count"] if "summary_at_count" in row.keys() else 0,
             genre=row["genre"] if "genre" in row.keys() else "",
             message_thread_id=row["message_thread_id"] if "message_thread_id" in row.keys() else 0,
+            billing_mode=(row["billing_mode"] if "billing_mode" in row.keys() else "") or "split",
             created_at=row["created_at"] or "",
             updated_at=row["updated_at"] or "",
         )

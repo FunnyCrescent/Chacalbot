@@ -156,11 +156,14 @@ class CombatCoordinatorMixin:
         return "\n".join(lines)
 
 
-    async def _combat_starter_async(self, session_id: str, participant_names: List[str], reason: str, pc_initiatives: Dict = None) -> str:
+    async def _combat_starter_async(self, session_id: str, participant_names: List[str], reason: str, pc_initiatives: Dict = None, priorities: Dict = None) -> str:
         """Async wrapper so ai_client.py's Callable[..., Awaitable[str]] type holds —
         start_combat_for_participants itself is plain sync DB work, no I/O to await.
-        pc_initiatives: dict of {character_name: {natural: int, total: int}} from player_roll_requester."""
-        return self.start_combat_for_participants(session_id, participant_names, reason, pc_initiatives=pc_initiatives)
+        pc_initiatives: dict of {character_name: {natural: int, total: int}} from player_roll_requester.
+        priorities: тай-брейк инициативы {имя: int} — меньше = раньше (Раздел 4)."""
+        return self.start_combat_for_participants(
+            session_id, participant_names, reason,
+            pc_initiatives=pc_initiatives, priorities=priorities)
 
 
     async def _combat_ender_async(self, session_id: str, reason: str) -> str:
@@ -442,7 +445,7 @@ class CombatCoordinatorMixin:
         return self._pending_combat_joins.pop(session_id, [])
 
 
-    def start_combat_for_participants(self, session_id: str, participant_names: List[str], reason: str = "", pc_initiatives: Dict = None) -> str:
+    def start_combat_for_participants(self, session_id: str, participant_names: List[str], reason: str = "", pc_initiatives: Dict = None, priorities: Dict = None) -> str:
         """Called ONLY from the Master's start_combat tool call (see ai_client.py
         COMBAT_TOOLS) — combat begins from narrative (Дн.), never from an admin command.
 
@@ -454,7 +457,13 @@ class CombatCoordinatorMixin:
         V10b: Creates CombatEncounter + Combatant entries in the DB so that the
         per-turn combat loop (_start_combat_turn_loop in bot.py) can read them
         via get_current_initiative_turn / advance_initiative_turn. Does NOT call
-        start_action_collection — the per-turn loop handles queue state."""
+        start_action_collection — the per-turn loop handles queue state.
+
+        ИТЕРАЦИЯ 10 (Раздел 4): priorities — опциональный словарь
+        {имя_участника: int} из tool-вызова dechrauymladd. Тай-брейк при РАВНЫХ
+        инициативах: МЕНЬШЕ = ходит РАНЬШЕ. В нарративе игроки видят сырую
+        инициативу (оба «15») — priority в показ не входит и не является
+        игромеханическим бонусом."""
         db = self.db_manager.get_db(session_id)
         session = db.get_session(session_id)
         if not session:
@@ -463,6 +472,12 @@ class CombatCoordinatorMixin:
             return "Combat is already active — do not call start_combat again this fight."
 
         pc_initiatives = pc_initiatives or {}
+        # Раздел 4: нормализация priorities — ключи в нижний регистр, значения int.
+        try:
+            priority_map = {str(k).strip().lower(): int(v)
+                            for k, v in (priorities or {}).items()}
+        except (TypeError, ValueError):
+            priority_map = {}
         session_chars = db.get_session_characters(session_id)
         players = db.get_players(session_id)
         alive_chars = [c for c in session_chars if getattr(c, "is_alive", True)]
@@ -522,18 +537,20 @@ class CombatCoordinatorMixin:
                     results.append(f"{char.name}: d20={roll_nat}{dex_mod:+d} = {roll_total} (server fallback)")
 
                 # ── Create Combatant in DB ──
+                pc_priority = priority_map.get(name.lower(), 0)
                 combatant = Combatant(
                     id=combatant_id, encounter_id=encounter_id, session_id=session_id,
                     name=char.name, entity_type="pc", player_id=char.player_id,
                     initiative=roll_total, natural_roll=roll_nat, dex_mod=dex_mod,
                     hp=char.hp, max_hp=char.max_hp, ac=char.ac,
-                    sort_order=sort_order,
+                    sort_order=sort_order, priority=pc_priority,
                 )
                 db.add_combatant(combatant)
 
                 initiative_list.append({
                     "name": char.name, "player_id": char.player_id,
                     "initiative": roll_total, "natural": roll_nat, "dex_mod": dex_mod,
+                    "priority": pc_priority,
                 })
             else:
                 # NPC/monster — server roll, hidden
@@ -542,17 +559,19 @@ class CombatCoordinatorMixin:
                 results.append(f"{name}: d20 = {roll_nat} (NPC, hidden)")
 
                 # ── Create Combatant in DB ──
+                npc_priority = priority_map.get(name.lower(), 0)
                 combatant = Combatant(
                     id=combatant_id, encounter_id=encounter_id, session_id=session_id,
                     name=name, entity_type="npc", player_id=0,
                     initiative=roll_total, natural_roll=roll_nat, dex_mod=0,
-                    sort_order=sort_order,
+                    sort_order=sort_order, priority=npc_priority,
                 )
                 db.add_combatant(combatant)
 
                 initiative_list.append({
                     "name": name, "player_id": 0,
                     "initiative": roll_total, "natural": roll_nat, "dex_mod": 0,
+                    "priority": npc_priority,
                 })
 
             sort_order += 1
@@ -560,7 +579,10 @@ class CombatCoordinatorMixin:
         if not initiative_list:
             return "Error: no valid participants supplied to start_combat."
 
-        initiative_list.sort(key=lambda x: x["initiative"], reverse=True)
+        # ИТЕРАЦИЯ 10 (Раздел 4): python-сортировка должна совпадать с SQL-сортировкой
+        # get_initiative_order: инициатива DESC → priority ASC (меньше = раньше).
+        # Стабильность сортировки сохраняет порядок вставки при полном равенстве.
+        initiative_list.sort(key=lambda x: (-x["initiative"], x.get("priority", 0)))
 
         # ── Update session state ──
         session.combat_active = True
@@ -645,12 +667,19 @@ class CombatCoordinatorMixin:
     # INITIATIVE-BASED COMBAT (dechrauymladd)
     # ═══════════════════════════════════════════════════════════
 
-    def start_initiative_combat(self, session_id: str, participants: list, reason: str) -> str:
-        """Start initiative-based combat. Called by Master's dechrauymladd tool."""
+    def start_initiative_combat(self, session_id: str, participants: list, reason: str, priorities: Dict = None) -> str:
+        """Start initiative-based combat. Called by Master's dechrauymladd tool.
+        ИТЕРАЦИЯ 10 (Раздел 4): priorities — опциональный тай-брейк {имя: int},
+        меньше = раньше (см. start_combat_for_participants)."""
         db = self.db_manager.get_db(session_id)
         session = db.get_session(session_id)
         if not session:
             return "Error: session not found"
+        try:
+            priority_map = {str(k).strip().lower(): int(v)
+                            for k, v in (priorities or {}).items()}
+        except (TypeError, ValueError):
+            priority_map = {}
         
         encounter_id = uuid.uuid4().hex[:12]
         encounter = CombatEncounter(
@@ -695,6 +724,7 @@ class CombatCoordinatorMixin:
                     player_id=char_player_id,
                     initiative=initiative, natural_roll=roll, dex_mod=dex_mod,
                     hp=hp, max_hp=max_hp, ac=ac, sort_order=sort_order,
+                    priority=priority_map.get(name.lower(), 0),
                 )
             else:
                 roll = random.randint(1, 20)
@@ -704,6 +734,7 @@ class CombatCoordinatorMixin:
                     name=name, entity_type="npc", player_id=0,
                     initiative=initiative, natural_roll=roll, dex_mod=0,
                     sort_order=sort_order,
+                    priority=priority_map.get(name.lower(), 0),
                 )
             
             db.add_combatant(combatant)

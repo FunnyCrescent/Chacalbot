@@ -85,6 +85,14 @@ class BaseDatabase:
                 # as the original command instead of falling back to the main group chat.
                 if "message_thread_id" not in existing_cols:
                     conn.execute("ALTER TABLE sessions ADD COLUMN message_thread_id INTEGER DEFAULT 0")
+                # ИТЕРАЦИЯ 10 (Разделы 6-7): способ оплаты сессии — «split» (поровну
+                # между игроками) | «creator_pays» (полностью платит создатель).
+                # Выбирается ОДИН раз в меню /newydd и фиксируется на жизнь сессии.
+                if "billing_mode" not in existing_cols:
+                    conn.execute("ALTER TABLE sessions ADD COLUMN billing_mode TEXT DEFAULT 'split'")
+                # ИТЕРАЦИЯ 10 (Раздел 4): тай-брейк инициативы при равных значениях.
+                if "priority" not in {r["name"] for r in conn.execute("PRAGMA table_info(combatants)").fetchall()}:
+                    conn.execute("ALTER TABLE combatants ADD COLUMN priority INTEGER DEFAULT 0")
                 # Custom currency columns
                 for col in ["currency_name", "currency_plural", "currency_symbol",
                             "currency_sub_name", "currency_sub_plural", "currency_sub_symbol",
@@ -669,6 +677,7 @@ class BaseDatabase:
                     traits TEXT DEFAULT '',
                     brief_context TEXT DEFAULT '',
                     sort_order INTEGER DEFAULT 0,
+                    priority INTEGER DEFAULT 0,
                     FOREIGN KEY (encounter_id) REFERENCES combat_encounters(id)
                 )
             """)

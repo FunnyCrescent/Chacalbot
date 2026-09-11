@@ -224,6 +224,162 @@ SETTINGS_MIN_COMPLEXITY = 0.3
 ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID", "-1003311333760")  # Admin channel for telemetry
 
 # ═══════════════════════════════════════════════════════════════
+# COMMERCIAL MODE / BILLING (ИТЕРАЦИЯ 10, Разделы 6-7)
+# ═══════════════════════════════════════════════════════════════
+# COMMERCIAL_MODE=false (или не задана) — играть можно БЕСПЛАТНО везде:
+# общий чат, ЛС, любые другие чаты. Токен-гейт отключён, MAIN_CHAT_ID
+# не имеет значения. Вся логика живёт в плагине plugins/billing/ — удаление
+# папки плагина или выключение его в plugins.toml тоже полностью отключает
+# биллинг (безопасный паттерн get_plugin() в хендлерах).
+#
+# COMMERCIAL_MODE=true — включается вся схема Раздела 6:
+#   • общий чат (MAIN_CHAT_ID) — бесплатен;
+#   • ЛС закрыта для игры для всех, КРОМЕ TESTERS (у не-тестеров в ЛС
+#     работают только /creu+диалог, /cyfieithu, /gwneud, заглушка оплаты);
+#   • любой другой чат — реальное списание токенов по игроку (грант
+#     30 000 000 при первом входе), меню способа оплаты в /newydd,
+#     подтверждение /ymuno.
+COMMERCIAL_MODE = os.environ.get("COMMERCIAL_MODE", "false").strip().lower() == "true"
+
+# TESTERS — де-факто модераторы. Список Telegram user_id через запятую.
+# У тестеров БЕЗЛИМИТНЫЙ баланс: токен-гейт на них не действует НИ В КАКОМ
+# чате (проверка баланса первым делом смотрит на TESTERS и пропускает).
+# Им же доступно ручное пополнение игроков: /ychwanegu <user_id> <сумма>.
+TESTERS = os.environ.get("TESTERS", "")  # список ID через запятую
+
+
+def get_testers() -> set:
+    """Parse TESTERS env ("id1,id2,...") into a set of ints. Empty → set()."""
+    result = set()
+    for raw in (TESTERS or "").replace(";", ",").split(","):
+        raw = raw.strip()
+        if raw and raw.lstrip("-").isdigit():
+            result.add(int(raw))
+    return result
+
+
+# MAIN_CHAT_ID — «общий/главный чат бота» (бесплатная игра в commercial-режиме).
+# 0 = не задан: тогда бесплатным считается ТОЛЬКО ЛС-поведение по правилам выше,
+# а все групповые чаты считаются платными (осторожно — задай явно).
+MAIN_CHAT_ID = int(os.environ.get("MAIN_CHAT_ID", "0") or 0)
+
+# Стартовый грант токенов новому игроку (выдаётся РОВНО ОДИН РАЗ за жизнь
+# аккаунта, глобально по user_id, не пересоздаётся при выходе/входе в сессию).
+TOKEN_GRANT_AMOUNT = int(os.environ.get("TOKEN_GRANT_AMOUNT", "30000000"))
+
+# Глобальная БД биллинга (балансы + журнал операций). НЕ per-session:
+# баланс игрока един по user_id для всех его сессий и чатов.
+BILLING_DB_PATH = os.path.join(BASE_DIR, "data", "billing.db")
+
+# ═══════════════════════════════════════════════════════════════
+# LLM PROVIDERS — трёхуровневый перебор (ИТЕРАЦИЯ 10, Раздел 8)
+# ═══════════════════════════════════════════════════════════════
+# Формат: Host+API = один «провайдер», под ним НЕСКОЛЬКО моделей. Пока на
+# текущем провайдере не перепробованы ВСЕ его модели — к следующему
+# провайдеру перехода нет. Каждый НОВЫЙ вызов chat() начинает перебор
+# ЗАНОВО с провайдера №1 / модели №1 — никакой памяти между запросами
+# (провайдер_state.json не создаётся сознательно).
+#
+# LLM_PROVIDERS — общий список для всех ролей; <ROLE>_PROVIDERS —
+# переопределение под роль (MASTER_PROVIDERS, DB_PROVIDERS, RENDERER_PROVIDERS,
+# MEMORY_PROVIDERS, EMBEDDING_PROVIDERS, TRANSLATOR_PROVIDERS, NPC_AI_PROVIDERS,
+# MODER_AI_PROVIDERS, MODER_AI_DISPATCH_PROVIDERS, AUDITOR_PROVIDERS).
+#
+# Если ни LLM_PROVIDERS, ни <ROLE>_PROVIDERS не заданы — используется
+# одиночный провайдер из OPENAI_BASE_URL/OPENAI_API_KEY и модели роли
+# (старое поведение, полный back-compat).
+#
+# Пример:
+# LLM_PROVIDERS='[
+#   {"name": "openrouter", "base_url": "https://openrouter.ai/api/v1",
+#    "api_key": "sk-or-...",
+#    "models": ["google/gemma-3-4b-it:free", "google/gemma-3-4b-it"]},
+#   {"name": "polza", "base_url": "https://api.polza.ai/v1",
+#    "api_key": "sk-polza-...", "models": ["google/gemma-3-4b-it"]}
+# ]'
+LLM_PROVIDERS = os.environ.get("LLM_PROVIDERS", "")
+
+# Переключение провайдера/модели при этих HTTP-статусах (auth/платёж/доступ).
+# Остальные 4xx (400/404/422 — ошибка ЗАПРОСА, а не провайдера) перебор
+# не запускают — ошибка сразу уходит наружу.
+PROVIDER_SWITCH_STATUSES = {401, 402, 403}
+
+
+def _parse_providers_json(raw: str) -> list:
+    """Parse a providers JSON string into a list of validated provider dicts.
+    Invalid entries are skipped with a warning (never raises)."""
+    import json as _json
+    if not raw or not raw.strip():
+        return []
+    try:
+        data = _json.loads(raw)
+    except (ValueError, TypeError) as e:
+        print(f"⚠️  LLM_PROVIDERS: невалидный JSON ({e}) — используется одиночный "
+              f"провайдер из OPENAI_BASE_URL", file=sys.stderr)
+        return []
+    if not isinstance(data, list):
+        print("⚠️  LLM_PROVIDERS: корень должен быть массивом — используется "
+              "одиночный провайдер", file=sys.stderr)
+        return []
+    result = []
+    for entry in data:
+        if not isinstance(entry, dict):
+            continue
+        base = str(entry.get("base_url") or "").strip().rstrip("/")
+        models = entry.get("models")
+        if not base or not isinstance(models, list) or not models:
+            print(f"⚠️  LLM_PROVIDERS: провайдер без base_url/models пропущен "
+                  f"({entry.get('name', '?')})", file=sys.stderr)
+            continue
+        result.append({
+            "name": str(entry.get("name") or base),
+            "base_url": base,
+            "api_key": str(entry.get("api_key") or ""),
+            "models": [str(m) for m in models if str(m).strip()],
+        })
+    return result
+
+
+# config.json support: api.llm_providers (тот же формат) перекрывает env.
+def _config_llm_providers() -> list:
+    raw = _CONFIG_JSON.get("api", {}).get("llm_providers")
+    if isinstance(raw, str):
+        return _parse_providers_json(raw)
+    if isinstance(raw, list):
+        import json as _json
+        try:
+            return _parse_providers_json(_json.dumps(raw, ensure_ascii=False))
+        except Exception:
+            return []
+    return []
+
+
+def get_providers_for_role(role: str, default_model: str = "",
+                           default_base_url: str = "", default_api_key: str = "") -> list:
+    """Список провайдеров для роли. Статическая конфигурация БЕЗ состояния:
+    каждый вызов читает <ROLE>_PROVIDERS → LLM_PROVIDERS → одиночный
+    дефолтный провайдер (default_* или глобальные OPENAI_*)."""
+    role_env = os.environ.get(f"{role.upper()}_PROVIDERS", "")
+    if role_env.strip():
+        providers = _parse_providers_json(role_env)
+        if providers:
+            return providers
+    if LLM_PROVIDERS.strip():
+        providers = _parse_providers_json(LLM_PROVIDERS)
+        if providers:
+            return providers
+    cfg_providers = _config_llm_providers()
+    if cfg_providers:
+        return cfg_providers
+    # Fallback: одиночный провайдер из дефолтов (старое поведение).
+    return [{
+        "name": "default",
+        "base_url": (default_base_url or OPENAI_BASE_URL).rstrip("/"),
+        "api_key": default_api_key or OPENAI_API_KEY,
+        "models": [default_model] if default_model else [],
+    }]
+
+# ═══════════════════════════════════════════════════════════════
 # ПРОКСИ — чтобы не поднимать туннели
 # ═══════════════════════════════════════════════════════════════
 # Форматы: http://host:port | http://user:pass@host:port

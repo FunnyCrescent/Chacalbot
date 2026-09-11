@@ -65,6 +65,7 @@ logger = logging.getLogger(__name__)
 from libs.handlers.utils import fmt_players
 from libs.handlers.utils import get_session
 from libs.handlers.utils import send_safe
+from libs.handlers.utils import get_billing_plugin
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -84,7 +85,30 @@ async def new_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     name = " ".join(ctx.args)
     session = sessions.create_session(chat_id, name, user.id, user.username or user.first_name)
-    await send_safe(update, 
+
+    # ИТЕРАЦИЯ 10 (Раздел 6): меню способа оплаты — ТОЛЬКО в commercial-режиме
+    # и только в ПЛАТНОМ чате (не общий MAIN_CHAT_ID, не ЛС). billing_mode
+    # выбирается ОДИН раз и фиксируется на всю жизнь сессии. В бесплатном
+    # режиме (плагина нет / COMMERCIAL_MODE=false) — прежнее поведение.
+    billing = get_billing_plugin(ctx)
+    if billing is not None and billing.is_active() and billing.is_paid_chat(update.effective_chat):
+        # Грант новичку — при первом входе в платный чат (идемпотентно).
+        billing.ensure_player_grant(user.id)
+        kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("💰 Разделить токены между игроками поровну",
+                                  callback_data="billmode:split")],
+            [InlineKeyboardButton("👑 Полностью оплачивает создатель",
+                                  callback_data="billmode:creator_pays")],
+        ])
+        await send_safe(update,
+            f"⚔️ **Сессия создана!**\n*{session.name}*\nID: `{session.id}`\n\n"
+            "💰 **Кто оплачивает токены этой сессии?**\n"
+            "Выбор фиксируется навсегда и не меняется, кто бы ни заходил позже.",
+            reply_markup=kb,
+        )
+        return
+
+    await send_safe(update,
         f"⚔️ **Сессия создана!**\n*{session.name}*\nID: `{session.id}`\n\nДругие игроки: `/ymuno`",
     )
 
@@ -101,11 +125,71 @@ async def join_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await send_safe(update, "Ты уже в сессии!")
         return
 
+    # ИТЕРАЦИЯ 10 (Раздел 6): подтверждение ПЕРЕД фактическим входом —
+    # не дать игроку случайно зайти в платную сессию, не осознавая, что
+    # игра здесь тратит его личный пул токенов. Реальное add_player +
+    # add_player_to_queue выполняются ТОЛЬКО по нажатию «Да»
+    # (см. join_confirm_callback — там же токен-гейт).
+    kb = InlineKeyboardMarkup([[
+        InlineKeyboardButton("✅ Да, готов", callback_data=f"ymuno:confirm:{user.id}"),
+        InlineKeyboardButton("❌ Нет", callback_data=f"ymuno:cancel:{user.id}"),
+    ]])
+    await send_safe(update,
+        f"⚠️ **{user.first_name or user.username}, ты уверен(а), что готов(а) зайти в игру?**\n\n"
+        "Сессия: *" + session.name + "*.\n"
+        "После входа загрузи персонажа: отправь `.txt`/`.md` лист и ответь `/cymeriad`.",
+        reply_markup=kb,
+    )
+
+
+async def join_confirm_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """ИТЕРАЦИЯ 10 (Раздел 6): обработчик подтверждения /ymuno.
+    Реальный вход (add_player + очередь) выполняется ТОЛЬКО здесь — по «Да»,
+    и ТОЛЬКО от того же пользователя, что вызвал команду.
+    Регистрируется плагином lobby-session (CallbackQueryHandler)."""
+    query = update.callback_query
+    await query.answer()
+    # Формат: ymuno:confirm:<user_id> | ymuno:cancel:<user_id>.
+    # Кнопка «своя»: нажать может только тот, кто вызвал /ymuno.
+    parts = query.data.split(":")
+    action = parts[1] if len(parts) > 1 else ""
+    try:
+        owner_id = int(parts[2]) if len(parts) > 2 else 0
+    except ValueError:
+        owner_id = 0
+    if owner_id and query.from_user.id != owner_id:
+        await query.answer("Это подтверждение для другого игрока.", show_alert=True)
+        return
+    if action == "cancel":
+        await query.edit_message_text("🚪 Вход отменён.")
+        return
+    if action != "confirm":
+        return
+    user = query.from_user
+    chat_id = update.effective_chat.id if update.effective_chat else 0
+    session = get_session(chat_id)
+    if not session:
+        await query.edit_message_text("Нет сессии.")
+        return
+    db = db_manager.get_db(session.id)
+    if db.get_player(user.id, session.id):
+        await query.edit_message_text("Ты уже в сессии!")
+        return
+
+    # Токен-гейт для платных чатов — ДО входа (зашедшему с нулевым балансом
+    # всё равно был бы заблокирован первый же Дн. — честнее отказать сразу).
+    billing = get_billing_plugin(ctx)
+    if billing is not None:
+        allowed, msg = await billing.check_game_allowed(update, ctx, session=session)
+        if not allowed:
+            await query.edit_message_text(msg)
+            return
+
     sessions.add_player(session.id, user.id, user.username or "", user.first_name or user.username or "Неизвестный")
     sessions.add_player_to_queue(session.id, user.id)
-    await send_safe(update, 
+    await query.edit_message_text(
         f"✅ **{user.first_name or user.username}** присоединился!\n\n"
-        "Загрузи персонажа: отправь .txt/.md и ответь `/cymeriad`",
+        "Загрузи персонажа: отправь .txt/.md и ответь `/cymeriad`"
     )
 
 
