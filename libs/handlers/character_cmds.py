@@ -62,6 +62,56 @@ from libs.handlers._state import (
 
 logger = logging.getLogger(__name__)
 
+# ИТЕРАЦИЯ 13: критерии «распознаваемого» результата локального regex-парсера.
+_REGEX_FALLBACK_BAD_NAMES = {
+    "unknown", "неизвестно", "имя персонажа", "имяперсонажа",
+    "персонаж", "character name", "name",
+}
+
+
+def _regex_fallback_parse(sheet_text: str) -> Optional[ParsedCharacter]:
+    """ИТЕРАЦИЯ 13: детерминированный фолбэк для УЖЕ ПРОВАЛИДИРОВАННЫХ листов.
+
+    Живой баг (Эйра): AI-валидатор дал verdict VALID, а AI-парсер вернул None
+    (модель ответила не-JSON или ошибочным маркером) — игрок получал «Не удалось
+    распознать лист персонажа», хотя лист валидный. Теперь, если AI-парсер
+    отказал ПОСЛЕ успешной проверки правил, лист распознаётся локальным
+    regex-парсером CharacterParser (детерминированный, без LLM).
+
+    ВНИМАНИЕ: вызывать можно ТОЛЬКО после AI-валидации (verdict VALID) — для
+    произвольных файлов regex-парсер небезопасен (возвращает «Unknown»-болванку
+    для любого мусора). Здесь это гарантирует вызывающий контекст.
+
+    Возвращает ParsedCharacter или None, если даже regex-парсер не нашёл ни
+    внятного имени, ни расы/класса/навыков/инвентаря/умений.
+    """
+    try:
+        char = CharacterParser.parse_text(sheet_text or "")
+    except Exception as e:
+        logger.warning(f"[cymeriad] Regex fallback parser crashed: {e}")
+        return None
+    if not char:
+        return None
+    name = str(getattr(char, "name", "") or "").strip()
+    if not name or name.lower() in _REGEX_FALLBACK_BAD_NAMES:
+        logger.warning(f"[cymeriad] Regex fallback: no usable name (got {name!r})")
+        return None
+    has_data = any([
+        str(getattr(char, "race", "") or "").strip(),
+        str(getattr(char, "class_name", "") or "").strip(),
+        getattr(char, "skills", []) or [],
+        getattr(char, "inventory", []) or [],
+        getattr(char, "features", []) or [],
+    ])
+    if not has_data:
+        logger.warning("[cymeriad] Regex fallback: name found but no race/class/skills/inventory/features")
+        return None
+    logger.info(
+        f"[cymeriad] Regex fallback succeeded: {name!r} "
+        f"({getattr(char, 'race', '')} {getattr(char, 'class_name', '')})"
+    )
+    return char
+
 
 def _char_change_blocked(db, session, user_id: int) -> Optional[str]:
     """ИТЕРАЦИЯ 10 (Раздел 2): смена персонажа запрещена после создания мира.
@@ -228,9 +278,13 @@ async def _process_character_upload(update: Update, ctx: ContextTypes.DEFAULT_TY
         # === AI PARSING (primary) ===
         parsed = await dm_engine.parse_character_sheet(sheet_text)
         if not parsed:
-            # The AI parser refused (likely a malformed/non-character file).
-            # Do NOT fall back to the regex parser on a suspicious file — the regex
-            # parser happily returns a default "Unknown" character for garbage input.
+            # ИТЕРАЦИЯ 13: лист УЖЕ прошёл AI-проверку правил (verdict VALID),
+            # значит это НЕ мусорный файл — отказ AI-парсера означает проблему
+            # формата ответа модели, а не игрока. Пробуем детерминированный
+            # локальный regex-парсер, прежде чем отказывать.
+            parsed = _regex_fallback_parse(sheet_text)
+        if not parsed:
+            # Neither the AI parser nor the local parser recognized a character.
             await send_safe(update,
                 "❌ **Не удалось распознать лист персонажа.**\n\n"
                 "Похоже, файл не содержит данных персонажа (имя, раса, класс, характеристики). "
@@ -625,6 +679,10 @@ async def _apply_saved_char_to_session(update: Update, query, user, session,
     # Fallback: parse with AI only if no cached data
     if not parsed:
         parsed = await dm_engine.parse_character_sheet(sheet_text)
+        if not parsed:
+            # ИТЕРАЦИЯ 13: сохранённый лист прошёл проверку при загрузке —
+            # пробуем локальный regex-парсер вместо отказа.
+            parsed = _regex_fallback_parse(sheet_text)
         if not parsed:
             await query.edit_message_text(
                 "❌ Не удалось распарсить лист персонажа. Загрузи заново.",

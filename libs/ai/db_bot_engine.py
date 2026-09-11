@@ -1,4 +1,5 @@
 """DBBotEngineMixin — DB sub-agent (reads narrative, queues write actions)."""
+import ast
 import json
 import logging
 import asyncio
@@ -26,6 +27,77 @@ def _re_word_chars(text: str) -> str:
     """Return only the word characters (letters/digits) of `text` — used to detect
     'empty' character sheets that technically contain whitespace/punctuation."""
     return "".join(_WORD_CHARS_RE.findall(text or ""))
+
+
+_FENCE_RE = re.compile(r"^```[a-zA-Z0-9]*\s*|\s*```$", re.MULTILINE)
+_TRAILING_COMMA_RE = re.compile(r",\s*([}\]])")
+
+
+def _extract_json_object(text: str) -> Optional[Dict]:
+    """ИТЕРАЦИЯ 13: robustly extract a JSON object from an LLM answer.
+
+    Живой баг (Эйра, /cymeriad): валидатор сказал VALID, а парсер упал с
+    «Не удалось распознать лист». Причина — хрупкое чтение ответа модели:
+    раньше допускался ТОЛЬКО чистый JSON (опционально в ```-блоке). Gemma и
+    другие малые модели регулярно (а) пишут прозу вокруг JSON, (б) ставят
+    висячие запятые, (в) используют одинарные кавычки / True/False/None.
+    Любое из этого падало в json.loads → except → None → отказ игроку,
+    хотя лист валидный.
+
+    Стратегии по порядку:
+      1. прямой json.loads
+      2. срез первого '{' .. последнего '}' + json.loads
+      3. срез + удаление висячих запятых + json.loads
+      4. срез + ast.literal_eval (одинарные кавычки, True/False/None)
+    Возвращает dict или None (если ни одна стратегия не сработала).
+    """
+    if not (text or "").strip():
+        return None
+    raw = (text or "").strip()
+    # 0. Снять markdown-заборы целиком (могут быть и в начале, и в конце).
+    stripped = _FENCE_RE.sub("", raw).strip()
+
+    candidates = [raw, stripped]
+    # Срез от первой фигурной скобки до последней — лечит прозу вида
+    # «Вот JSON: {...} Надеюсь, помог!» и вложенные ```-блоки.
+    first = raw.find("{")
+    last = raw.rfind("}")
+    if first != -1 and last > first:
+        candidates.append(raw[first:last + 1])
+
+    for cand in candidates:
+        if not cand:
+            continue
+        try:
+            data = json.loads(cand)
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+
+    # Ремонтные стратегии — только над самым многообещающим кандидатом (срез).
+    base = candidates[-1] if len(candidates) > 2 else stripped
+    if "{" in base:
+        first = base.find("{")
+        last = base.rfind("}")
+        if last > first:
+            substr = base[first:last + 1]
+            # 3. Висячие запятые: {"a": 1,} / ["x", ]
+            repaired = _TRAILING_COMMA_RE.sub(r"\1", substr)
+            try:
+                data = json.loads(repaired)
+                if isinstance(data, dict):
+                    return data
+            except Exception:
+                pass
+            # 4. Python-стиль: одинарные кавычки, True/False/None.
+            try:
+                data = ast.literal_eval(repaired)
+                if isinstance(data, dict):
+                    return data
+            except Exception:
+                pass
+    return None
 
 
 class DBBotEngineMixin:
@@ -409,17 +481,18 @@ class DBBotEngineMixin:
         try:
             response = await self.db_bot.chat(messages, system_prompt=None, tools=None, tool_choice=None)
             raw = response["choices"][0]["message"].get("content", "")
-            # Strip markdown code blocks if present
-            logger.info(f"[parse_character_sheet] Llama 4 raw response: {raw[:500]}...")
-            raw = raw.strip()
-            if raw.startswith("```json"):
-                raw = raw[7:]
-            elif raw.startswith("```"):
-                raw = raw[3:]
-            if raw.endswith("```"):
-                raw = raw[:-3]
-            raw = raw.strip()
-            data = json.loads(raw)
+            logger.info(f"[parse_character_sheet] LLM raw response: {raw[:500]}...")
+            # ИТЕРАЦИЯ 13: раньше здесь был хрупкий ручной срез ```-заборов +
+            # один json.loads — любой другой формат ответа модели (проза вокруг
+            # JSON, висячие запятые, одинарные кавычки) падал в except и выдавал
+            # игроку «Не удалось распознать лист» на ВАЛИДНОМ листе.
+            data = _extract_json_object(raw)
+            if data is None:
+                logger.error(
+                    "[parse_character_sheet] Could not extract JSON object from model "
+                    f"output (head={raw[:200]!r} tail={raw[-120:]!r})"
+                )
+                return None
             logger.info(f"[parse_character_sheet] Parsed JSON keys: {list(data.keys())}")
             # Guard 3: the model explicitly told us there is no character here.
             if not isinstance(data, dict) or data.get("error"):

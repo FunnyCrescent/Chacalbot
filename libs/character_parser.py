@@ -237,6 +237,10 @@ class CharacterParser:
 
         # === LINE-BY-LINE STAT EXTRACTION ===
         # Handles formats like: "СИЛ   8   (–1)    │    ЛОВ  19   (+4)"
+        # ИТЕРАЦИЯ 13: сначала wide-таблица (заголовок-строка + строка значений)
+        # — самый структурированный источник; одиночные форматы ниже могут
+        # переопределить, как и раньше.
+        cls._parse_wide_stat_table(content, char)
         stat_map = {
             'сил': 'strength', 'str': 'strength', 'strength': 'strength',
             'лов': 'dexterity', 'dex': 'dexterity', 'dexterity': 'dexterity', 'ловкость': 'dexterity',
@@ -608,6 +612,52 @@ class CharacterParser:
             if match:
                 return cls._clean_md(match.group(1).strip())
         return ""
+
+    # ИТЕРАЦИЯ 13: wide-table (D&D Beyond / многие самописные листы) —
+    # заголовок-строка с именами характеристик, строка значений НИЖЕ:
+    #   | Сила | Ловкость | Телосложение | Интеллект | Мудрость | Харизма |
+    #   | 16   | 10       | 14           | 9         | 12       | 17      |
+    # Старые паттерны требуют «имя + число» в ОДНОЙ ячейке/строке и этот
+    # самый частый табличный формат пропускали.
+    _STAT_HEADER_TOKENS = {
+        "сил": "strength", "сила": "strength", "str": "strength", "strength": "strength",
+        "лов": "dexterity", "ловкость": "dexterity", "dex": "dexterity", "dexterity": "dexterity",
+        "тел": "constitution", "телосложение": "constitution", "con": "constitution", "constitution": "constitution",
+        "инт": "intelligence", "интеллект": "intelligence", "int": "intelligence", "intelligence": "intelligence",
+        "муд": "wisdom", "мудрость": "wisdom", "wis": "wisdom", "wisdom": "wisdom",
+        "хар": "charisma", "харизма": "charisma", "cha": "charisma", "charisma": "charisma",
+    }
+    _SEP_CELL_RE = re.compile(r":?-{2,}:?")
+    _NUM_CELL_RE = re.compile(r"\d{1,2}")
+
+    @classmethod
+    def _parse_wide_stat_table(cls, content: str, char: ParsedCharacter) -> None:
+        """Fill stats from a wide markdown/box table (header row + values row)."""
+        lines = content.splitlines()
+        for i, line in enumerate(lines):
+            if "|" not in line:
+                continue
+            cells = [c.strip().strip("*").lower() for c in line.split("|") if c.strip()]
+            if len(cells) < 3:
+                continue
+            if not all(c in cls._STAT_HEADER_TOKENS for c in cells):
+                continue
+            stat_order = [cls._STAT_HEADER_TOKENS[c] for c in cells]
+            # Значения ищем в пределах 3 следующих строк (пропуская |---|---|).
+            for j in range(i + 1, min(i + 4, len(lines))):
+                nxt = lines[j]
+                if "|" not in nxt:
+                    continue
+                ncells = [c.strip() for c in nxt.split("|") if c.strip()]
+                if all(cls._SEP_CELL_RE.fullmatch(c) for c in ncells):
+                    continue  # разделитель заголовка
+                if len(ncells) == len(stat_order) and all(cls._NUM_CELL_RE.fullmatch(c) for c in ncells):
+                    for stat_name, val in zip(stat_order, ncells):
+                        v = int(val)
+                        if 1 <= v <= 30:
+                            setattr(char, stat_name, v)
+                            logger.info(f"[wide-table] {stat_name}: {v}")
+                break  # после первой не-разделительной строки поиск прекращаем
 
     @classmethod
     def _get_hit_die(cls, class_name: str) -> int:
