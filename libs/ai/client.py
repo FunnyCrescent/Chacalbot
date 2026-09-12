@@ -21,6 +21,7 @@ response["usage"]["total_tokens"] и отдаём в usage_ledger (реальн�
 import json
 import logging
 import asyncio
+import re
 from typing import Dict, List, Optional
 
 import aiohttp
@@ -98,6 +99,59 @@ def _is_provider_level_error(status: int, error_text: str) -> bool:
         return False
     lowered = error_text.lower()
     return any(pattern in lowered for pattern in PROVIDER_LEVEL_ERROR_PATTERNS)
+
+
+# ───────────────────────────────────────────────────────────────────────
+# ИТЕРАЦИЯ 14: само-лечение payload от «Unknown name "X": Cannot find field»
+#
+# Реальный кейс: /dndcychwyn падал с «API 400: Invalid JSON payload received.
+# Unknown name "reasoning": Cannot find field». Наш thinking-режим добавляет
+# в payload {"reasoning": {"enabled": true}} (формат OpenRouter), а
+# Google-совместимый шлюз отклоняет незнакомое поле честной 400 — по Разделу 8
+# она уходила наружу без перебора. Но провайдер ЗДОРОВЫЙ: виновато ОПЦИОНАЛЬНОЕ
+# поле нашего payload, без которого запрос полностью валиден.
+#
+# Решение: при 400 с «Unknown name "X"» на НЕстандартном поле — повторить ТОГО
+# ЖЕ провайдера/модели без всех нестандартных полей (thinking-экстры,
+# response_format и т.п.). Пара запоминается в процессе (in-process memo —
+# НЕ персистентность Раздела 8: порядок провайдеров не меняется, меняется
+# только форма payload) — последующие вызовы сразу шлют чистый payload.
+# ───────────────────────────────────────────────────────────────────────
+
+# Поля стандартного OpenAI chat-completions запроса, без которых вызов
+# ТЕРЯЕТ СМЫСЛ — их НЕ трогаем (tools/tool_choice: снятие молча отключило
+# бы инструментальный цикл Мастера — честная 400 правильнее).
+# ВСЁ остальное — опциональная экстра: thinking-поля, response_format
+# (creu парсит JSON fail-soft и без него), стоп-токены и т.п.
+_STANDARD_CHAT_FIELDS = frozenset({
+    "model", "messages", "temperature", "max_tokens", "stream",
+    "tools", "tool_choice",
+})
+_UNKNOWN_FIELD_RE = re.compile(r'Unknown name \\?"([^"\\]+)\\?"', re.IGNORECASE)
+
+# Пары провайдер/модель, чей шлюз уже отклонял опциональные поля
+# (заполняется само-лечением; живёт только в процессе).
+_PAYLOAD_STRIPE: set = set()
+
+
+def _strip_optional_extras(payload: Dict) -> Dict:
+    """Убрать все НЕстандартные поля payload (thinking-экстры, кастомные
+    extra_payload-ключи и т.п.). Стандартные — остаются."""
+    return {k: v for k, v in payload.items() if k in _STANDARD_CHAT_FIELDS}
+
+
+def _unknown_field_names(error_text: str) -> List[str]:
+    """Имена полей из тела ошибки вида «Unknown name "X": Cannot find field».
+    Google может перечислить несколько — возвращаем все."""
+    return _UNKNOWN_FIELD_RE.findall(error_text or "")
+
+
+def _payload_is_stripped(provider_name: str, model: str) -> bool:
+    return f"{provider_name}/{model}" in _PAYLOAD_STRIPE
+
+
+def _mark_payload_stripped(provider_name: str, model: str) -> None:
+    _PAYLOAD_STRIPE.add(f"{provider_name}/{model}")
 
 
 def _parse_api_error_body(error_text: str) -> Dict[str, Optional[str]]:
@@ -245,6 +299,10 @@ class OpenAIClient:
                 attempts += 1
                 payload = dict(base_payload)
                 payload["model"] = model
+                # ИТЕРАЦИЯ 14: пара уже отклоняла опциональные поля — сразу шлём
+                # чистый payload, не сжигая лишний round-trip.
+                if _payload_is_stripped(provider["name"], model):
+                    payload = _strip_optional_extras(payload)
                 try:
                     result = await self._chat_once(provider, model, payload, retries)
                     # Раздел 8: логируем финальную пару, на которой запрос СРАБОТАЛ —
@@ -362,6 +420,31 @@ class OpenAIClient:
                                     f"HTTP {response.status}: {last_error_msg}",
                                     provider_level=True)
                             else:
+                                # ИТЕРАЦИЯ 14: 400 «Unknown name "X": Cannot find
+                                # field» на ОПЦИОНАЛЬНОМ (нестандартном) поле нашего
+                                # payload — провайдер здоров, повторяем БЕЗ таких
+                                # полей. Если X стандартное (tools/max_tokens/…) —
+                                # это честная ошибка запроса, наружу как раньше.
+                                unknown_names = _unknown_field_names(error_text)
+                                has_extras = any(
+                                    k not in _STANDARD_CHAT_FIELDS for k in payload)
+                                if (response.status == 400 and unknown_names
+                                        and has_extras and any(
+                                            n not in _STANDARD_CHAT_FIELDS
+                                            for n in unknown_names)):
+                                    stripped = _strip_optional_extras(payload)
+                                    removed = sorted(
+                                        set(payload) - set(stripped))
+                                    _mark_payload_stripped(
+                                        provider["name"], model)
+                                    logger.warning(
+                                        "[chat] HTTP 400 Unknown-name self-heal: "
+                                        f"provider={provider['name']} model={model} "
+                                        f"rejected optional field(s) {unknown_names} "
+                                        f"— retrying without extras: {removed}"
+                                    )
+                                    return await self._chat_once(
+                                        provider, model, stripped, retries)
                                 # Non-retryable HTTP error (400/404/422 etc.) — ошибка
                                 # ЗАПРОСА, не провайдера: перебор не продолжаем, чужой
                                 # провайдер вернёт ту же 400. Наружу — как раньше.

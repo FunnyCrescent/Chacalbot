@@ -37,7 +37,7 @@
     "auditor_max_tokens": 4096
   },
   "thinking": {
-    "_readme": "style: 'reasoning' (OpenRouter-совместимые агрегаторы) | 'chat_template_kwargs' (enable_thinking) | 'raw' (thinking.type=enabled) | 'off'. master всегда true. ЛОКАЛЬНЫЙ сервер: если API-ошибка на поле 'reasoning' — поставь style='off' (Gemma thinking-канала не имеет, нарративщику это не мешает).",
+    "_readme": "style: 'reasoning' (OpenRouter-совместимые агрегаторы) | 'chat_template_kwargs' (enable_thinking) | 'raw' (thinking.type=enabled) | 'off'. master всегда true. ИТЕРАЦИЯ 14: если шлюз не знает поле (400 Unknown name) — бот АВТОМАТИЧЕСКИ повторяет запрос без опциональных полей и запоминает пару на время процесса; ручной style='off' больше не требуется.",
     "style": "reasoning",
     "master": true,
     "db": false,
