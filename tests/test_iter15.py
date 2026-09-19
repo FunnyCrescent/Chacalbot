@@ -268,8 +268,9 @@ class TestApplyAwardXp:
         ])
         assert db.get_character("c1").level == 2
         histories = db.get_history("s15", limit=50)
-        secret = [h for h in histories if h.author == "GM_SECRET" and "[XP]" in h.content]
-        assert secret and "УРОВЕНЬ 2" in secret[0].content and "квест" in secret[0].content
+        # ИТЕРАЦИЯ 16: бриф теперь форматирует libs.level_up — маркер [УРОВЕНЬ]
+        secret = [h for h in histories if h.author == "GM_SECRET" and "[УРОВЕНЬ]" in h.content]
+        assert secret and "уровень 1 → 2" in secret[0].content and "ГОТОВО" in secret[0].content
 
     def test_award_xp_no_level_up_no_history(self, tmp_path):
         dbm, db, stub = self._make(tmp_path)

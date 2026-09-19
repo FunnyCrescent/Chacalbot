@@ -165,6 +165,24 @@ class BaseDatabase:
                     FOREIGN KEY (session_id) REFERENCES sessions(id)
                 )
             """)
+            # ИТЕРАЦИЯ 16: неоформленные повышения уровня — напоминание Мастеру
+            # живёт в БД, пока он не передаст выборы («УРОВЕНЬ+: ...») и не
+            # закроет повышение инструментом complete_level_up.
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS pending_level_ups (
+                    id TEXT PRIMARY KEY,
+                    session_id TEXT NOT NULL,
+                    character_id TEXT NOT NULL,
+                    character_name TEXT NOT NULL,
+                    from_level INTEGER DEFAULT 1,
+                    to_level INTEGER DEFAULT 1,
+                    brief TEXT DEFAULT '',
+                    status TEXT DEFAULT 'pending',
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    done_at TEXT DEFAULT '',
+                    FOREIGN KEY (session_id) REFERENCES sessions(id)
+                )
+            """)
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS queue_state (
                     session_id TEXT PRIMARY KEY,

@@ -143,6 +143,27 @@ class QueueState:
 
 
 @dataclass
+class PendingLevelUp:
+    """ИТЕРАЦИЯ 16: неоформленное повышение уровня.
+
+    Создаётся автоматически, когда персонаж получает новый уровень (award_xp
+    по XP или level_up_character за веху). Хранит скрытый бриф Мастеру; висит
+    в контексте Мастера, пока он не передаст выборы строками «УРОВЕНЬ+: ...»
+    в СВОДКЕ, и снимается инструментом complete_level_up.
+    """
+    id: str
+    session_id: str
+    character_id: str
+    character_name: str
+    from_level: int = 1
+    to_level: int = 1
+    brief: str = ""
+    status: str = "pending"   # pending | done
+    created_at: str = ""
+    done_at: str = ""
+
+
+@dataclass
 class CharacterSheet:
     """Full character sheet text uploaded by player"""
     session_id: str

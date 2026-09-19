@@ -38,6 +38,19 @@ except Exception as _e:  # pragma: no cover — защита от частичн
     logger.warning(f"[prompts] xp_system unavailable: {_e}")
 
 # ═══════════════════════════════════════════════════════════════
+# АВТОПОВЫШЕНИЕ УРОВНЯ (ИТЕРАЦИЯ 16): плейсхолдер {{LEVEL_UP_SYSTEM}} —
+# единый источник правды в libs/level_up.py (формат строк «УРОВЕНЬ+: ...»
+# и правило «ровно по брифу»). Таблицы классов живут в коде — промпту они
+# не нужны: бриф повышения всегда несёт точные числа с собой.
+# ═══════════════════════════════════════════════════════════════
+try:
+    from libs.level_up import build_prompt_block as _level_up_block
+    LEVEL_UP_PROMPT_BLOCK = _level_up_block()
+except Exception as _e:  # pragma: no cover
+    LEVEL_UP_PROMPT_BLOCK = ""
+    logger.warning(f"[prompts] level_up unavailable: {_e}")
+
+# ═══════════════════════════════════════════════════════════════
 # EDITION RESOLVER
 # ═══════════════════════════════════════════════════════════════
 _edition = EditionDiff()
@@ -64,6 +77,8 @@ def _substitute(text: str) -> str:
             .replace("{{EDITION_LABEL}}", EDITION_LABEL))
     if "{{XP_SYSTEM}}" in text:
         text = text.replace("{{XP_SYSTEM}}", XP_PROMPT_BLOCK)
+    if "{{LEVEL_UP_SYSTEM}}" in text:
+        text = text.replace("{{LEVEL_UP_SYSTEM}}", LEVEL_UP_PROMPT_BLOCK)
     return text
 
 

@@ -13,7 +13,7 @@ from libs.db import (
     Database, DatabaseManager, HistoryEntry, Player, QueueState, Session,
     Location, LocationPath, WorldNpc, NpcRelation, LoreArticle,
     MarketPrice, EconomicEvent, ActiveEffect, Timer, LocationRelation,
-    CombatEncounter, Combatant, PlayerLanguage,
+    CombatEncounter, Combatant, PlayerLanguage, PendingLevelUp,
 )
 from libs.config_legacy import (
     COMBAT_INITIATIVE_ENABLED, DUAL_NARRATIVE_ENABLED,
@@ -220,6 +220,12 @@ class ResolutionMixin:
                 context_lines.append("\n--- ЛИЧНЫЕ ЦЕЛИ ПЕРСОНАЖЕЙ (не квесты — не требуют подтверждения NPC) ---")
                 for g in goals[:8]:
                     context_lines.append(f"• {g['character_name']}: {g['title']}")
+
+            # ИТЕРАЦИЯ 16: неоформленные повышения уровня — напоминание Мастеру
+            # в КАЖДОМ раунде, пока выборы не переданы строками «УРОВЕНЬ+: ...»
+            pending_levelups = db.pending_level_up_block(session_id)
+            if pending_levelups:
+                context_lines.append(pending_levelups)
 
             factions = db.get_factions(session_id)
             if factions:
@@ -476,6 +482,11 @@ class ResolutionMixin:
                 assignee = f" ({q.assignee_name})" if q.assignee_name else ""
                 context_lines.append(f"• {q.title}{assignee}")
 
+        # ИТЕРАЦИЯ 16: напоминание о неоформленных повышениях уровня
+        pending_levelups = db.pending_level_up_block(session_id)
+        if pending_levelups:
+            context_lines.append(pending_levelups)
+
         gt = db.get_game_time(session_id)
         context_lines.append(f"\n--- ВРЕМЯ: День {gt.day}, {gt.hour:02d}:{gt.minute:02d} | {gt.weather} | {gt.temperature} ---")
 
@@ -607,7 +618,14 @@ class ResolutionMixin:
                     conds = db.get_conditions(session_id, c.id)
                     gold_str = ", ".join(f"{v}{k}" for k, v in gold.items() if v)
                     # XP (ИТЕРАЦИЯ 15) в состоянии видит только DB-бот — игроки не видят
-                    db_state.append(f"{c.name}: HP={c.hp}/{c.max_hp}, XP={max(0, int(getattr(c, 'xp', 0) or 0))}, Валюта=[{gold_str or '0gp'}], Loc={loc.location_name if loc else '?'}, Inv={[i['item'] for i in inv]}, Conds={[cc.condition for cc in conds]}")
+                    # Хар=[...] (ИТЕРАЦИЯ 16): нужны DB-боту для set_ability_score при
+                    # ASI-строках «характеристика: <название> +N» (new_value = старое + N).
+                    db_state.append(
+                        f"{c.name}: HP={c.hp}/{c.max_hp}, XP={max(0, int(getattr(c, 'xp', 0) or 0))}, "
+                        f"Хар=[СИЛ {c.strength} ЛОВ {c.dexterity} ТЕЛ {c.constitution} "
+                        f"ИНТ {c.intelligence} МУД {c.wisdom} ХАР {c.charisma}], "
+                        f"Валюта=[{gold_str or '0gp'}], Loc={loc.location_name if loc else '?'}, "
+                        f"Inv={[i['item'] for i in inv]}, Conds={[cc.condition for cc in conds]}")
 
             existing_npcs = db.get_npcs(session_id, alive_only=False)
             if existing_npcs:
@@ -651,6 +669,93 @@ class ResolutionMixin:
             logger.error(f"Error in DB-Bot phase: {e}")
             return {"game_actions_applied": 0, "errors": [str(e)]}
 
+
+    def _process_level_up(self, db, session_id: str, char, old_level: int, new_level: int,
+                          source: str = "") -> Optional[Dict]:
+        """ИТЕРАЦИЯ 16: автоматическое оформление повышения уровня.
+
+        Вызывается, когда уровень персонажа РАСТЁТ (award_xp по XP-порогам или
+        level_up_character за сюжетную веху). Делает:
+          1. Строит план по таблицам SRD 5e (libs.level_up.build_level_up_plan).
+          2. АВТОМАТИЧЕСКИ применяет детерминированную часть: HP (средняя кость
+             хитов + ТЕЛ за уровень), умения класса из таблицы.
+          3. Создаёт pending-запись (напоминание в контексте Мастера, пока
+             выборы не оформлены) и СКРЫТЫЙ бриф GM_SECRET в историю.
+        Выборы (заклинания, ASI/черта, подкласс) Мастер передаёт строками
+        «УРОВЕНЬ+: ...» в СВОДКЕ — их применяет DB-бот инструментами.
+        """
+        if new_level <= old_level:
+            return None
+        try:
+            from libs.level_up import build_level_up_plan, format_level_up_brief, extract_subclass
+        except Exception as e:
+            logger.warning(f"[level_up] module unavailable: {e}")
+            return None
+
+        try:
+            base_class, subclass = extract_subclass(char.class_name or "")
+            con_mod = 0
+            try:
+                stats = json.loads(char.stats) if char.stats else {}
+                con_mod = (int(stats.get("constitution", 10)) - 10) // 2
+            except Exception:
+                con_mod = 0
+            plan = build_level_up_plan(
+                char.class_name or "", old_level, new_level,
+                con_mod=con_mod, subclass=subclass,
+            )
+        except Exception as e:
+            logger.warning(f"[level_up] plan build failed for {char.name}: {e}")
+            plan = None
+
+        applied_auto: List[str] = []
+
+        # 1. HP — автоматически (только если HP уже инициализированы)
+        hp_gain = (plan or {}).get("hp_total", 0)
+        if hp_gain > 0 and (char.max_hp or 0) > 0:
+            db.set_character_max_hp(char.id, char.max_hp + hp_gain, adjust_current=True)
+            applied_auto.append(f"HP +{hp_gain}")
+
+        # 2. Умения класса — автоматически (дедупликация внутри add_character_feature)
+        for feat in (plan or {}).get("auto_features", []):
+            try:
+                db.add_character_feature(char.id, feat["name"])
+                applied_auto.append(f"умение: {feat['name']}")
+            except Exception as e:
+                logger.warning(f"[level_up] add feature failed: {e}")
+
+        # 3. Pending-запись + скрытый бриф Мастеру
+        if plan:
+            brief = format_level_up_brief(plan, char.name)
+        else:
+            brief = (f"[УРОВЕНЬ] {char.name}: уровень {old_level} → {new_level}. "
+                     f"(Таблицы класса недоступны — оформи повышение по PHB вручную.)")
+        try:
+            db.add_pending_level_up(PendingLevelUp(
+                id=str(uuid.uuid4()), session_id=session_id, character_id=char.id,
+                character_name=char.name, from_level=old_level, to_level=new_level,
+                brief=brief, status="pending",
+            ))
+        except Exception as e:
+            logger.warning(f"[level_up] pending record failed: {e}")
+
+        try:
+            db.add_history(HistoryEntry(
+                session_id=session_id, author="GM_SECRET", content=brief,
+                entry_type="system",
+            ))
+        except Exception as hist_err:
+            logger.warning(f"[level_up] history entry failed: {hist_err}")
+
+        db.add_journal_entry(
+            session_id, "UPDATE", "characters", char.id,
+            f"LEVEL UP {old_level} -> {new_level} ({source or 'AI'}); "
+            f"auto: {', '.join(applied_auto) if applied_auto else '—'}"
+        )
+        logger.info(
+            f"[level_up] {char.name}: {old_level} -> {new_level} ({source or 'AI'}); "
+            f"auto-applied: {applied_auto or '—'}; choices await master")
+        return {"plan": plan, "auto_applied": applied_auto, "brief": brief}
 
     def _apply_game_actions(self, session_id: str, actions: List[Dict]) -> Tuple[int, List[str]]:
         """Apply game state changes returned by AI tools."""
@@ -1084,14 +1189,29 @@ class ResolutionMixin:
                     applied += 1
 
                 # ─── Character progression (B1) — the DB is the live source of truth ───
+                # ИТЕРАЦИЯ 16: повышение уровня за сюжетную веху проходит через
+                # ту же автоматику, что и XP-повышение: план SRD → авто-HP/умения
+                # → pending-напоминание и скрытый бриф Мастеру.
                 elif tool == "level_up_character":
                     char = find_char(args.get("character_name", ""))
                     if not char:
                         errors.append(f"level_up_character: char not found '{args.get('character_name')}'")
                         continue
                     new_level = args.get("new_level", char.level)
-                    new_max_hp = args.get("new_max_hp")
-                    db.set_character_level(char.id, new_level, new_max_hp)
+                    try:
+                        new_level = int(new_level)
+                    except (TypeError, ValueError):
+                        errors.append(f"level_up_character: bad level {args.get('new_level')!r}")
+                        continue
+                    old_level = char.level
+                    if new_level > old_level:
+                        # Явные new_max_hp больше не нужны — HP считается по SRD
+                        # автоматически (средняя кость + ТЕЛ за каждый уровень).
+                        db.set_character_level(char.id, new_level)
+                        self._process_level_up(db, session_id, char, old_level, new_level,
+                                               source=args.get("reason", "milestone"))
+                    else:
+                        db.set_character_level(char.id, new_level, args.get("new_max_hp"))
                     applied += 1
 
                 # ─── ИТЕРАЦИЯ 15: система опыта — XP скрыт от игроков, видят
@@ -1112,21 +1232,14 @@ class ResolutionMixin:
                     xp_res = db.grant_character_xp(char.id, amount, args.get("source", "AI"))
                     applied += 1
                     if xp_res and xp_res.get("leveled_up"):
-                        # Скрытый канал Мастеру (GM_SECRET в историю — игроки его не читают):
-                        # уровень повысился автоматически по XP — пусть Мастер отыграет это.
-                        try:
-                            db.add_history(HistoryEntry(
-                                session_id=session_id, author="GM_SECRET",
-                                content=(f"[XP] {xp_res['character_name']}: +{xp_res['xp_added']} XP "
-                                         f"({xp_res['source']}). Всего {xp_res['xp_total']} XP. "
-                                         f"ДОСТИГНУТ УРОВЕНЬ {xp_res['new_level']}! В следующем нарративе "
-                                         f"объяви уровень (это МОЖНО показать игрокам), предложи выбор "
-                                         f"(HP по кости класса / умение) и при необходимости вызови "
-                                         f"level_up_character / add_feature для оформления."),
-                                entry_type="system",
-                            ))
-                        except Exception as hist_err:
-                            logger.warning(f"[award_xp] history entry failed: {hist_err}")
+                        # ИТЕРАЦИЯ 16: XP ↔ уровень связаны полностью — авто-уровень
+                        # тянет за собой план повышения по SRD: авто-HP/умения,
+                        # pending-напоминание и скрытый бриф Мастеру (выборы
+                        # заклинаний/ASI он оформит строками «УРОВЕНЬ+: ...»).
+                        self._process_level_up(
+                            db, session_id, char,
+                            xp_res.get("old_level", char.level), xp_res.get("new_level", char.level),
+                            source=xp_res.get("source", "XP"))
                         logger.info(
                             f"[award_xp] {xp_res['character_name']}: +{xp_res['xp_added']} XP "
                             f"-> {xp_res['xp_total']} XP, УРОВЕНЬ {xp_res['old_level']} -> {xp_res['new_level']}")
@@ -1164,6 +1277,29 @@ class ResolutionMixin:
                         continue
                     db.add_character_spell(char.id, args.get("spell_name", ""))
                     applied += 1
+
+                # ─── ИТЕРАЦИЯ 16: закрыть повышение уровня ───
+                # Вызывается DB-ботом ПОСЛЕ применения всех строк «УРОВЕНЬ+: ...»
+                # из СВОДКИ Мастера: снимает pending-напоминание.
+                elif tool == "complete_level_up":
+                    char = find_char(args.get("character_name", ""))
+                    if not char:
+                        errors.append(f"complete_level_up: char not found '{args.get('character_name')}'")
+                        continue
+                    done_count = db.complete_pending_level_ups_for_character(char.id)
+                    applied += 1
+                    if done_count:
+                        try:
+                            db.add_history(HistoryEntry(
+                                session_id=session_id, author="GM_SECRET",
+                                content=(f"[УРОВЕНЬ] Повышение {char.name} (до уровня "
+                                         f"{char.level}) оформлено полностью — все выгоды "
+                                         f"применены, напоминание снято."),
+                                entry_type="system",
+                            ))
+                        except Exception as hist_err:
+                            logger.warning(f"[complete_level_up] history entry failed: {hist_err}")
+                        logger.info(f"[complete_level_up] {char.name}: {done_count} pending level-up(s) closed")
 
                 # ─── H8: what a LOCATION knows/feels about a character ───
                 elif tool == "update_location_relation":

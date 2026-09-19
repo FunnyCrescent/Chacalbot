@@ -1052,6 +1052,15 @@ class CombatCoordinatorMixin:
                 cond_txt = f", состояния: {', '.join(str(c) for c in conds)}" if conds else ""
                 note_txt = f", заметка: {note}" if note else ""
                 lines.append(f"  • {nm}: HP {hp}/{hp_max}{cond_txt}{note_txt}{alive}")
+
+        # ИТЕРАЦИЯ 16: неоформленные повышения уровня — напоминание Мастеру
+        # и в бою (оформить, когда ход персонажа позволяет).
+        try:
+            pending_levelups = db.pending_level_up_block(session_id)
+            if pending_levelups:
+                lines.append(pending_levelups)
+        except Exception:
+            pass
         return "\n".join(lines)
 
 

@@ -492,13 +492,19 @@ GAME_TOOLS = [
         "type": "function",
         "function": {
             "name": "level_up_character",
-            "description": "Raise a character's level (and optionally max HP) when the narrative reflects a level-up (quest reward, milestone, montage of downtime). Only for real, narratively-earned progression — not something a player merely claims.",
+            "description": (
+                "Raise a character's level for a narratively-earned MILESTONE (quest reward, "
+                "montage of downtime) — not for XP-based level-ups (those happen automatically "
+                "in award_xp) and not for something a player merely claims. The system then "
+                "automatically applies SRD benefits (HP by hit die + CON, class features) and "
+                "creates a hidden level-up brief for the Master: remaining choices (spells, ASI, "
+                "subclass) must be passed as «УРОВЕНЬ+: ...» lines in the СВОДКА."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "character_name": {"type": "string"},
                     "new_level": {"type": "integer", "minimum": 1, "maximum": 20},
-                    "new_max_hp": {"type": "integer", "description": "New max HP if it changed (optional)."},
                     "reason": {"type": "string"},
                 },
                 "required": ["character_name", "new_level", "reason"],
@@ -515,7 +521,9 @@ GAME_TOOLS = [
                 "или 'XP: всем участникам +<N>' в блоке СВОДКА (для 'всем участникам' — отдельный "
                 "вызов для КАЖДОГО персонажа сцены). Сумма уже посчитана Мастером по системе XP — "
                 "не пересчитывай и не придумывай XP сам. Уровень повысится автоматически в БД, "
-                "если порог достигнут. Ничего в чат не отправляй и в нарратив XP не добавляй."
+                "если порог достигнут: система сама применит HP и умения класса по SRD и создаст "
+                "скрытый бриф — выборы Мастер передаст строками «УРОВЕНЬ+: ...». "
+                "Ничего в чат не отправляй и в нарратив XP не добавляй."
             ),
             "parameters": {
                 "type": "object",
@@ -534,7 +542,13 @@ GAME_TOOLS = [
         "type": "function",
         "function": {
             "name": "set_ability_score",
-            "description": "Change one of a character's six ability scores (STR/DEX/CON/INT/WIS/CHA). Use for Ability Score Improvements, magical boons/curses, cursed items, tomes of power, etc. — not for temporary combat buffs.",
+            "description": (
+                "Change one of a character's six ability scores (STR/DEX/CON/INT/WIS/CHA) — "
+                "new_value is the NEW ABSOLUTE value. For level-up ASI lines «УРОВЕНЬ+: <имя> "
+                "характеристика: <название> +N» compute new_value = current value + N (current "
+                "scores are in Current DB State, поле Хар=[...]). Also for magical boons/curses, "
+                "cursed items, tomes of power — not for temporary combat buffs."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -551,7 +565,11 @@ GAME_TOOLS = [
         "type": "function",
         "function": {
             "name": "add_feature",
-            "description": "Grant a character a new class/racial feature or feat they narratively earned (level-up choice, boon, training montage).",
+            "description": (
+                "Grant a character a new class/racial feature, feat, warlock invocation or "
+                "subclass feature — from level-up choices («УРОВЕНЬ+: ... черта: ...»), "
+                "boons or training montage."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -566,7 +584,10 @@ GAME_TOOLS = [
         "type": "function",
         "function": {
             "name": "add_proficiency",
-            "description": "Grant a character a new proficiency (skill, tool, weapon, armor, language) they narratively earned.",
+            "description": (
+                "Grant a character a new proficiency (skill, tool, weapon, armor, language) "
+                "they narratively earned — including level-up choices («УРОВЕНЬ+: ... навык: ...»)."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -581,7 +602,10 @@ GAME_TOOLS = [
         "type": "function",
         "function": {
             "name": "add_spell_known",
-            "description": "Grant a character a new known/prepared spell they narratively learned (level-up, spellbook, scroll study).",
+            "description": (
+                "Grant a character a new known/prepared/learned spell or cantrip — from level-up "
+                "choices («УРОВЕНЬ+: ... заклинание: ...»), spellbook study, scroll reading."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -589,6 +613,25 @@ GAME_TOOLS = [
                     "spell_name": {"type": "string"},
                 },
                 "required": ["character_name", "spell_name"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "complete_level_up",
+            "description": (
+                "Закрыть повышение уровня. Вызывай ПОСЛЕ применения ВСЕХ строк «УРОВЕНЬ+: ...» "
+                "из СВОДКИ Мастера для этого персонажа (заклинания/навыки/черты/характеристики — "
+                "каждая своим инструментом). Снимает напоминание о неоформленном повышении. "
+                "Не вызывай, если ещё есть непримененные строки повышения."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "character_name": {"type": "string"},
+                },
+                "required": ["character_name"],
             },
         },
     },

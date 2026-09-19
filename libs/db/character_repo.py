@@ -17,7 +17,7 @@ from .models import (
     LocationPath, WorldNpc, NpcRelation, LoreArticle, MarketPrice,
     EconomicEvent, ActiveEffect, Timer, LootTable, DbJournalEntry,
     MemoryEntry, LocationRelation, CombatEncounter, Combatant, PlayerLanguage,
-    SettingEntry, RoundMessageTracker,
+    SettingEntry, RoundMessageTracker, PendingLevelUp,
 )
 
 logger = logging.getLogger(__name__)
@@ -233,6 +233,78 @@ class CharacterRepoMixin:
             "next_threshold": next_level_threshold(new_level),
             "source": "set",
         }
+
+
+    # ═══════════════════════════════════════════════════════════
+    # Pending level-ups (ИТЕРАЦИЯ 16) — неоформленные повышения
+    # ═══════════════════════════════════════════════════════════
+
+    def add_pending_level_up(self, record: PendingLevelUp) -> PendingLevelUp:
+        with self._connect() as conn:
+            conn.execute(
+                """INSERT OR REPLACE INTO pending_level_ups
+                   (id, session_id, character_id, character_name, from_level,
+                    to_level, brief, status, created_at, done_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(NULLIF(?, ''), CURRENT_TIMESTAMP), ?)""",
+                (record.id, record.session_id, record.character_id, record.character_name,
+                 record.from_level, record.to_level, record.brief, record.status,
+                 record.created_at or "", record.done_at or "")
+            )
+        self.add_journal_entry(record.session_id, "INSERT", "pending_level_ups", record.id,
+                               f"{record.character_name}: level {record.from_level}->{record.to_level} awaits paperwork")
+        return record
+
+    def get_pending_level_ups(self, session_id: str, status: str = "pending") -> List[PendingLevelUp]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM pending_level_ups WHERE session_id = ? AND status = ? ORDER BY created_at",
+                (session_id, status)
+            ).fetchall()
+            return [self._row_to_pending_level_up(r) for r in rows]
+
+    def complete_pending_level_ups_for_character(self, character_id: str) -> int:
+        """Закрыть ВСЕ pending-повышения персонажа (инструмент complete_level_up). Вернуть сколько закрыто."""
+        with self._connect() as conn:
+            cur = conn.execute(
+                "UPDATE pending_level_ups SET status = 'done', done_at = CURRENT_TIMESTAMP "
+                "WHERE character_id = ? AND status = 'pending'",
+                (character_id,)
+            )
+            count = cur.rowcount or 0
+        if count:
+            char = self.get_character(character_id)
+            if char:
+                self.add_journal_entry(char.session_id, "UPDATE", "pending_level_ups", character_id,
+                                       f"{char.name}: level-up paperwork completed ({count})")
+        return count
+
+    def _row_to_pending_level_up(self, row) -> PendingLevelUp:
+        return PendingLevelUp(
+            id=row["id"], session_id=row["session_id"], character_id=row["character_id"],
+            character_name=row["character_name"], from_level=row["from_level"] or 1,
+            to_level=row["to_level"] or 1, brief=row["brief"] or "",
+            status=row["status"] or "pending", created_at=row["created_at"] or "",
+            done_at=row["done_at"] or "",
+        )
+
+    def pending_level_up_block(self, session_id: str) -> str:
+        """Скрытый блок для контекста Мастера: неоформленные повышения уровня.
+
+        Пустая строка — напоминать не о чем. Бриф уже был отправлен через
+        GM_SECRET-историю; здесь — ПОВТОР, пока Мастер не закроет повышение.
+        """
+        pendings = self.get_pending_level_ups(session_id, status="pending")
+        if not pendings:
+            return ""
+        lines = ["\n⬆️ НЕОФОРМЛЕННЫЕ ПОВЫШЕНИЯ УРОВНЯ (оформи в этом раунде, если сцена позволяет):"]
+        for p in pendings[:5]:
+            brief_short = (p.brief or "").strip()
+            lines.append(brief_short)
+        lines.append(
+            "Выборы передай строками «УРОВЕНЬ+: ...» ВНУТРИ СВОДКИ; когда всё передано — "
+            "строка «УРОВЕНЬ+ ГОТОВО: <имя>». Это напоминание исчезнет только после ГОТОВО."
+        )
+        return "\n".join(lines)
 
 
     def set_character_ability_score(self, character_id: str, ability: str, value: int):

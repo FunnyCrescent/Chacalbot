@@ -11,7 +11,7 @@ from .models import (
     LocationPath, WorldNpc, NpcRelation, LoreArticle, MarketPrice,
     EconomicEvent, ActiveEffect, Timer, LootTable, DbJournalEntry,
     MemoryEntry, LocationRelation, CombatEncounter, Combatant, PlayerLanguage,
-    SettingEntry, RoundMessageTracker,
+    SettingEntry, RoundMessageTracker, PendingLevelUp,
 )
 from .database import Database
 from .manager import DatabaseManager
@@ -29,5 +29,5 @@ __all__ = [
     "WorldNpc", "NpcRelation", "LoreArticle", "MarketPrice", "EconomicEvent",
     "ActiveEffect", "Timer", "LootTable", "DbJournalEntry", "MemoryEntry",
     "LocationRelation", "CombatEncounter", "Combatant", "PlayerLanguage",
-    "SettingEntry", "RoundMessageTracker",
+    "SettingEntry", "RoundMessageTracker", "PendingLevelUp",
 ]

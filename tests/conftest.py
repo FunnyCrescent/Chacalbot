@@ -204,6 +204,10 @@ class FakeDB:
     def get_character_goals(self, session_id, status="active"):
         return []
 
+    def pending_level_up_block(self, session_id):
+        """ИТЕРАЦИЯ 16: в фейковой БД неоформленных повышений нет."""
+        return ""
+
     def get_factions(self, session_id):
         return []
 
