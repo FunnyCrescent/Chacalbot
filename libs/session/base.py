@@ -177,6 +177,14 @@ class BaseSessionMixin:
         self._resolver_locks.pop(session_id, None)
         # Drop pending combat-join announcements (БОЙ-FIX v2).
         self._pending_combat_joins.pop(session_id, None)
+        # ИТЕРАЦИЯ 15: обрыв in-flight генеративных задач + запрет новых
+        # отправок (/dileu вызывает это ДО end_session — двойная отмена
+        # идемпотентна, а задачи умирают уже здесь).
+        try:
+            from libs.session.generation_guard import cancel_session_generations
+            cancel_session_generations(session_id)
+        except Exception:
+            pass
 
     # ═══════════════════════════════════════════════════════════
     # End of runtime-state cleanup

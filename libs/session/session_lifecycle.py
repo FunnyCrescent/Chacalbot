@@ -76,6 +76,18 @@ class SessionLifecycleMixin:
 
     def end_session(self, session_id: str):
         """End a session"""
+        # ИТЕРАЦИЯ 15: обрыв in-flight генераций ДО пометки ended — резолвы,
+        # боевой цикл, DB-Bot background и авто-скип получают task.cancel(),
+        # поэтому игрок больше НЕ получает бросок кубиков и нарратив за ход,
+        # сделанный до завершения сессии. Плюс страховочный гейт
+        # session_is_active() в точках отправки (engine.py).
+        try:
+            from libs.session.generation_guard import cancel_session_generations
+            cancelled = cancel_session_generations(session_id)
+            if cancelled:
+                logger.info(f"[end_session] {session_id}: aborted {cancelled} in-flight generation task(s)")
+        except Exception as e:
+            logger.warning(f"[end_session] generation cancel failed (non-fatal): {e}")
         self.db_manager.end_session(session_id)
         # MD-консолидация: per-session копия удаляется ВМЕСТЕ с завершением
         # сессии, чтобы копии не накапливались бесконечно. Если сессию потом

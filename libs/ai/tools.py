@@ -508,6 +508,31 @@ GAME_TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "award_xp",
+            "description": (
+                "Начислить опыт (XP) персонажу — СКРЫТАЯ характеристика, игроки её не видят. "
+                "Вызывай ТОЛЬКО по явному указанию Мастера: строки 'XP: <имя> +<N> (<источник>)' "
+                "или 'XP: всем участникам +<N>' в блоке СВОДКА (для 'всем участникам' — отдельный "
+                "вызов для КАЖДОГО персонажа сцены). Сумма уже посчитана Мастером по системе XP — "
+                "не пересчитывай и не придумывай XP сам. Уровень повысится автоматически в БД, "
+                "если порог достигнут. Ничего в чат не отправляй и в нарратив XP не добавляй."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "character_name": {"type": "string"},
+                    "amount": {"type": "integer", "minimum": 1,
+                               "description": "Сколько XP начислить (уже посчитано Мастером)."},
+                    "source": {"type": "string",
+                               "description": "Коротко почему: 'гоблин CR 1', 'квест завершён', 'убедили стражника — Средняя'."},
+                },
+                "required": ["character_name", "amount"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "set_ability_score",
             "description": "Change one of a character's six ability scores (STR/DEX/CON/INT/WIS/CHA). Use for Ability Score Improvements, magical boons/curses, cursed items, tomes of power, etc. — not for temporary combat buffs.",
             "parameters": {

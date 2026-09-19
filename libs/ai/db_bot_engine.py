@@ -381,7 +381,10 @@ class DBBotEngineMixin:
                 loc = db.get_location(session_id, found.id)
                 conds = db.get_conditions(session_id, found.id)
                 return json.dumps({
-                    "name": found.name, "level": found.level, "hp": found.hp, "max_hp": found.max_hp, "ac": found.ac,
+                    "name": found.name, "level": found.level,
+                    # XP — скрытая характеристика (ИТЕРАЦИЯ 15): видят только Мастер и DB-бот
+                    "xp": max(0, int(getattr(found, "xp", 0) or 0)),
+                    "hp": found.hp, "max_hp": found.max_hp, "ac": found.ac,
                     "gold_cp": gold.get("cp", 0), "gold_sp": gold.get("sp", 0), "gold_ep": gold.get("ep", 0),
                     "gold_gp": gold.get("gp", 0), "gold_pp": gold.get("pp", 0),
                     "location": loc.location_name if loc else "",

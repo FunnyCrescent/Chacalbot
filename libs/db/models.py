@@ -81,6 +81,10 @@ class Character:
     is_alive: bool = True
     conditions: str = ""
     languages: str = "[]"
+    # ИТЕРАЦИЯ 15: скрытый опыт (XP). Игроки его НЕ видят — только
+    # Мастер-нейросеть (progression summary / контекст) и DB-бот
+    # (db_state / get_character_state). Авто-уровневание — libs.xp_system.
+    xp: int = 0
 
     # ── Convenience properties: read stats from the JSON `stats` field ──
     # These prevent AttributeError when code accidentally accesses char.strength

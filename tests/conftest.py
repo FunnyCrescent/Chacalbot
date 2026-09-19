@@ -61,6 +61,8 @@ class FakeSession:
     def __init__(self, session_id: str = "s1", combat_active: bool = False):
         self.id = session_id
         self.combat_active = combat_active
+        # ИТЕРАЦИЯ 15: session_is_active() читает status (гвард завершённых сессий)
+        self.status = "active"
         # initiative machinery (combat_coordinator / V10b helpers)
         self.initiative_order = "[]"
         self.current_turn_index = 0

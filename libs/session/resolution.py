@@ -606,7 +606,8 @@ class ResolutionMixin:
                     loc = db.get_location(session_id, c.id)
                     conds = db.get_conditions(session_id, c.id)
                     gold_str = ", ".join(f"{v}{k}" for k, v in gold.items() if v)
-                    db_state.append(f"{c.name}: HP={c.hp}/{c.max_hp}, Валюта=[{gold_str or '0gp'}], Loc={loc.location_name if loc else '?'}, Inv={[i['item'] for i in inv]}, Conds={[cc.condition for cc in conds]}")
+                    # XP (ИТЕРАЦИЯ 15) в состоянии видит только DB-бот — игроки не видят
+                    db_state.append(f"{c.name}: HP={c.hp}/{c.max_hp}, XP={max(0, int(getattr(c, 'xp', 0) or 0))}, Валюта=[{gold_str or '0gp'}], Loc={loc.location_name if loc else '?'}, Inv={[i['item'] for i in inv]}, Conds={[cc.condition for cc in conds]}")
 
             existing_npcs = db.get_npcs(session_id, alive_only=False)
             if existing_npcs:
@@ -1092,6 +1093,43 @@ class ResolutionMixin:
                     new_max_hp = args.get("new_max_hp")
                     db.set_character_level(char.id, new_level, new_max_hp)
                     applied += 1
+
+                # ─── ИТЕРАЦИЯ 15: система опыта — XP скрыт от игроков, видят
+                # только Мастер (он его и посчитал по таблицам) и DB-бот ───
+                elif tool == "award_xp":
+                    char = find_char(args.get("character_name", ""))
+                    if not char:
+                        errors.append(f"award_xp: char not found '{args.get('character_name')}'")
+                        continue
+                    try:
+                        amount = int(args.get("amount", 0) or 0)
+                    except (TypeError, ValueError):
+                        errors.append(f"award_xp: bad amount {args.get('amount')!r}")
+                        continue
+                    if amount <= 0:
+                        # Нулевые/мусорные начисления молча пропускаем — это не ошибка
+                        continue
+                    xp_res = db.grant_character_xp(char.id, amount, args.get("source", "AI"))
+                    applied += 1
+                    if xp_res and xp_res.get("leveled_up"):
+                        # Скрытый канал Мастеру (GM_SECRET в историю — игроки его не читают):
+                        # уровень повысился автоматически по XP — пусть Мастер отыграет это.
+                        try:
+                            db.add_history(HistoryEntry(
+                                session_id=session_id, author="GM_SECRET",
+                                content=(f"[XP] {xp_res['character_name']}: +{xp_res['xp_added']} XP "
+                                         f"({xp_res['source']}). Всего {xp_res['xp_total']} XP. "
+                                         f"ДОСТИГНУТ УРОВЕНЬ {xp_res['new_level']}! В следующем нарративе "
+                                         f"объяви уровень (это МОЖНО показать игрокам), предложи выбор "
+                                         f"(HP по кости класса / умение) и при необходимости вызови "
+                                         f"level_up_character / add_feature для оформления."),
+                                entry_type="system",
+                            ))
+                        except Exception as hist_err:
+                            logger.warning(f"[award_xp] history entry failed: {hist_err}")
+                        logger.info(
+                            f"[award_xp] {xp_res['character_name']}: +{xp_res['xp_added']} XP "
+                            f"-> {xp_res['xp_total']} XP, УРОВЕНЬ {xp_res['old_level']} -> {xp_res['new_level']}")
 
                 elif tool == "set_ability_score":
                     char = find_char(args.get("character_name", ""))

@@ -139,6 +139,13 @@ class DatabaseManager:
             return None
         db.reactivate_session(session_id)
         self._chat_to_session[session.chat_id] = session_id
+        # ИТЕРАЦИЯ 15: сессия снова активна — снимаем запрет генераций
+        # (id сессии при resume не меняется, а флаг отмены глобальный).
+        try:
+            from libs.session.generation_guard import clear_cancel
+            clear_cancel(session_id)
+        except Exception:
+            pass
         # MD-консолидация: end_session удалил per-session MD-копию — переснимаем
         # из MD/_applied/ (состояние на момент возобновления). Это единственный
         # случай, когда копия существующей сессии создаётся заново.

@@ -12,3 +12,6 @@ __pycache__/
 .venv/
 venv/
 env/
+
+# Runtime-данные (ИТЕРАЦИЯ 15: тесты resume_session писали снапшоты в data/sessions)
+data/

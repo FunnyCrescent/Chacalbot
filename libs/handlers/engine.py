@@ -76,6 +76,12 @@ from libs.handlers.utils import send_to_admin
 from libs.handlers.utils import get_thread_id_for_session
 from libs.handlers.utils import capture_thread_id
 
+# ИТЕРАЦИЯ 15: гвард генераций — обрыв in-flight задач при завершении сессии
+from libs.session.generation_guard import (
+    generation_task, session_is_active, register as gg_register,
+    unregister as gg_unregister,
+)
+
 
 # ─────────────────────────────────────────────────────────────────
 # Code
@@ -222,6 +228,7 @@ async def _delete_round_messages(session_id: str, bot_instance, chat_id: int):
         logger.warning(f"[antispam] Failed to clean round messages: {e}")
 
 
+@generation_task
 async def _send_translations(session_id: str, narrative_text: str, bot_instance):
     """Send async translations to players who have it enabled. Group by language."""
     if not TRANSLATOR_ENABLED:
@@ -406,6 +413,7 @@ async def _db_busy_guard(update: Update, session: Session) -> bool:
     return False
 
 
+@generation_task
 async def _start_combat_turn_loop(session_id: str, chat_id: int, bot_obj):
     """Per-turn combat orchestrator.
 
@@ -461,6 +469,11 @@ async def _start_combat_turn_loop(session_id: str, chat_id: int, bot_obj):
             session = db.get_session(session_id)
             if not session or not session.combat_active:
                 return
+            # ИТЕРАЦИЯ 15: сессия завершена (/end и т.п.) — боевой цикл умирает,
+            # никаких «Ход NPC»/нарративов в мёртвый чат.
+            if not session_is_active(session_id, db_manager):
+                logger.info(f"[combat-loop] {session_id}: сессия завершена — цикл остановлен (гвард)")
+                return
 
             # ── Detect round boundary ──
             if session.round_number > prev_round or session.current_turn_index < prev_index:
@@ -503,6 +516,7 @@ async def _start_combat_turn_loop(session_id: str, chat_id: int, bot_obj):
         _active_combat_loops.pop(session_id, None)  # always clear the guard
 
 
+@generation_task
 async def _resolve_npc_combat_turn(session_id: str, current: dict, chat_id: int, bot_obj):
     """Resolve an NPC's combat turn automatically — sends ONE separate message.
     On error, logs and sends a fallback message so the combat loop doesn't stall."""
@@ -586,6 +600,7 @@ async def _resolve_npc_combat_turn(session_id: str, current: dict, chat_id: int,
             pass
 
 
+@generation_task
 async def _auto_resolve_npcs_then_pc(session_id: str, player_id: int, chat_id: int, bot_obj):
     """Auto-resolve all consecutive NPC turns, then set up for the requesting player's turn.
     This is called when a player writes Дн. during an NPC turn — instead of blocking them,
@@ -728,9 +743,22 @@ async def _setup_pc_combat_turn(session_id: str, current: dict, chat_id: int, bo
 
     async def _auto_skip_turn():
         """Wait for the player to act, then auto-skip if they don't."""
+        # ИТЕРАЦИЯ 15: таймер — тоже генеративная задача: /end отменяет его,
+        # чтобы после завершения сессии не приходили «не ответил вовремя» и
+        # не перезапускался боевой резолв/цикл.
+        gg_register(session_id)
+        try:
+            await _auto_skip_turn_inner()
+        finally:
+            gg_unregister(session_id)
+
+    async def _auto_skip_turn_inner():
         logger.info(f"[combat-auto-skip] Scheduling auto-skip for {char_name} in "
                     f"{COMBAT_PC_TURN_TIMEOUT_SECONDS}s (player_id={player_id}, session={session_id}, token={turn_token})")
         await asyncio.sleep(COMBAT_PC_TURN_TIMEOUT_SECONDS)
+        # ИТЕРАЦИЯ 15: сессия завершена за время ожидания — выходим молча.
+        if not session_is_active(session_id, db_manager):
+            return
         # Check if this player's turn is still active
         db = db_manager.get_db(session_id)
         session = db.get_session(session_id)
@@ -777,6 +805,7 @@ async def _setup_pc_combat_turn(session_id: str, current: dict, chat_id: int, bo
     asyncio.create_task(_auto_skip_turn())
 
 
+@generation_task
 async def _resolve_pc_combat_turn(session_id: str, action_text: str, chat_id: int, bot_obj):
     """Resolve a PC's combat turn after they submit Дн. — sends ONE separate message.
     On error, logs and auto-advances the turn so combat doesn't stall."""
@@ -930,7 +959,14 @@ async def _send_combat_turn_result(session_id: str, result: dict, handle):
     _cleanup_pending_combat_messages — which deletes the technical
     "⚔️ Ход:" / @mention / "✅ ... сходил" messages. By construction the
     technical messages vanish AFTER the player sees the narrative, never
-    before."""
+    before.
+
+    ИТЕРАЦИЯ 15: гейт «сессия активна» — если сессия завершена, пока резолв
+    висел в полёте, НЕ отправляем ни нарратив, ни fallback: игрок не должен
+    получать броски/нарратив за ход, сделанный до /end."""
+    if not session_is_active(session_id, db_manager):
+        logger.info(f"[combat] {session_id}: сессия завершена — нарратив хода НЕ отправляется (гвард)")
+        return
     raw_text = result.get("player_text", "")
     if not raw_text.strip():
         # GM returned empty — send a fallback message so the player isn't left hanging
@@ -1038,6 +1074,7 @@ async def _announce_combat_joins(session_id: str, send_target):
             pass
 
 
+@generation_task
 async def _resolve_non_combat_round(session_id: str, chat_id: int, bot_obj, update: Update = None, ctx=None):
     """DUAL NARRATIVE — resolve non-combat players' actions with a SEPARATE Master call.
     This runs in parallel with the combat turn loop, so non-combat players don't wait.
@@ -1064,6 +1101,12 @@ async def _resolve_non_combat_round(session_id: str, chat_id: int, bot_obj, upda
         raw_text = result.get("player_text", "")
         if not raw_text.strip():
             return  # nothing to send
+
+        # ИТЕРАЦИЯ 15: сессия завершена, пока non-combat резолв висел в полёте —
+        # молча выходим (никаких «📖»-нарративов после /end).
+        if not session_is_active(session_id, db_manager):
+            logger.info(f"[dual-narrative] {session_id}: сессия завершена — non-combat нарратив НЕ отправляется (гвард)")
+            return
 
         # Strip summary block and bot commands from player-facing text
         player_text = _strip_summary_and_commands(raw_text)
@@ -1127,6 +1170,7 @@ async def _resolve_non_combat_round(session_id: str, chat_id: int, bot_obj, upda
         logger.error(f"[dual-narrative] Error resolving non-combat round: {e}", exc_info=True)
 
 
+@generation_task
 async def _resolve_and_send(session_id: str, update: Update, ctx: ContextTypes.DEFAULT_TYPE = None):
     """
     Phase 1 (the Master) is awaited here and its narrative sent immediately. Phase 2
@@ -1151,6 +1195,10 @@ async def _resolve_and_send(session_id: str, update: Update, ctx: ContextTypes.D
 
         raw_text = result.get("player_text", "")
         raw_narrative_for_db = result.get("raw_narrative", "")
+        # ИТЕРАЦИЯ 15: сессия завершена, пока Мастер думал — ничего не отправляем.
+        if not session_is_active(session_id, db_manager):
+            logger.info(f"[resolve] {session_id}: сессия завершена во время генерации — нарратив НЕ отправляется (гвард)")
+            return
         if not raw_text.strip():
             await send_safe(update, "🤖 ДМ задумался, но ничего не ответил. Попробуйте ещё раз или используйте `/gofyn`.")
             return
@@ -1312,6 +1360,7 @@ def _route_deferred_resolve(fresh_session, queue_state) -> tuple:
     return ("skip", "")
 
 
+@generation_task
 async def _run_db_bot_background(session_id: str, raw_narrative: str, player_text: str,
                                   raw_sheets, bot_obj, chat_id, ctx=None):
     """Runs the DB-Bot phase, then: flips is_db_busy off, sends a short completion
@@ -1324,6 +1373,11 @@ async def _run_db_bot_background(session_id: str, raw_narrative: str, player_tex
     Also builds session_history from DB so DB-Bot's `ask_master` tool calls give
     Master enough context to answer."""
     applied = 0
+    # ИТЕРАЦИЯ 15: сессия уже завершена — DB-фаза не нужна вовсе.
+    if not session_is_active(session_id, db_manager):
+        sessions.set_db_busy(session_id, False)
+        logger.info(f"[db-bot-background] {session_id}: сессия завершена — фаза пропущена (гвард)")
+        return
     # Build player_roll_requester for DB-Bot's dispatch_roll tool (Idea 2).
     # If ctx/chat_id aren't available, dispatch_roll will fall back to server-side rolls.
     db_player_roll_requester = None
@@ -1394,6 +1448,10 @@ async def _run_db_bot_background(session_id: str, raw_narrative: str, player_tex
         logger.warning(f"[billing] settle_round skipped: {e}")
 
     if not bot_obj or not chat_id:
+        return
+    # ИТЕРАЦИЯ 15: «✅ Мир обновлён» и отложенный резолв — только для живой сессии.
+    if not session_is_active(session_id, db_manager):
+        logger.info(f"[db-bot-background] {session_id}: сессия завершена — уведомление/отложенный резолв пропущены (гвард)")
         return
     handle = _ChatHandle(bot_obj, chat_id, get_thread_id_for_session(session_id))
     try:

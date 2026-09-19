@@ -25,6 +25,19 @@ from libs.srd.edition_diff import EditionDiff
 logger = logging.getLogger(__name__)
 
 # ═══════════════════════════════════════════════════════════════
+# XP-СИСТЕМА (ИТЕРАЦИЯ 15): плейсхолдер {{XP_SYSTEM}} — единый источник правды
+# в libs/xp_system.py. Числа в промпте и в коде (award_xp/уровневание) всегда
+# совпадают, т.к. блок генерируется из тех же таблиц. МД-философия сохраняется:
+# секция в master.md/db_bot.md редактируема, а таблицы подставляются рантаймом.
+# ═══════════════════════════════════════════════════════════════
+try:
+    from libs.xp_system import build_prompt_block as _xp_block
+    XP_PROMPT_BLOCK = _xp_block()
+except Exception as _e:  # pragma: no cover — защита от частичной установки
+    XP_PROMPT_BLOCK = ""
+    logger.warning(f"[prompts] xp_system unavailable: {_e}")
+
+# ═══════════════════════════════════════════════════════════════
 # EDITION RESOLVER
 # ═══════════════════════════════════════════════════════════════
 _edition = EditionDiff()
@@ -46,9 +59,12 @@ PROMPT_FILES = {
 
 def _substitute(text: str) -> str:
     """Плейсхолдеры → реальные значения. Порядок не важен: значения не вложены."""
-    return (text
+    text = (text
             .replace("{{EDITION_NOTE}}", EDITION_NOTE)
             .replace("{{EDITION_LABEL}}", EDITION_LABEL))
+    if "{{XP_SYSTEM}}" in text:
+        text = text.replace("{{XP_SYSTEM}}", XP_PROMPT_BLOCK)
+    return text
 
 
 def _load_file(path: str, name: str) -> str:

@@ -33,15 +33,16 @@ class CharacterRepoMixin:
                    (id, session_id, player_id, name, race, class_name, level,
                     hp, max_hp, ac, stats, proficiencies, inventory, spells,
                     features, backstory, death_saves_success, death_saves_failure,
-                    is_alive, conditions, languages)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    is_alive, conditions, languages, xp)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (character.id, character.session_id, character.player_id,
                  character.name, character.race, character.class_name,
                  character.level, character.hp, character.max_hp, character.ac,
                  character.stats, character.proficiencies, character.inventory,
                  character.spells, character.features, character.backstory,
                  character.death_saves_success, character.death_saves_failure,
-                 int(character.is_alive), character.conditions, character.languages)
+                 int(character.is_alive), character.conditions, character.languages,
+                 max(0, int(getattr(character, "xp", 0) or 0)))
             )
         self.add_journal_entry(character.session_id, "INSERT", "characters", character.id,
                                f"Character {character.name} saved")
@@ -140,6 +141,98 @@ class CharacterRepoMixin:
                 conn.execute("UPDATE characters SET level = ? WHERE id = ?", (level, character_id))
         self.add_journal_entry(char.session_id, "UPDATE", "characters", character_id,
                                f"{char.name} level -> {level}" + (f", max HP -> {new_max_hp}" if new_max_hp is not None else ""))
+
+    # ═══════════════════════════════════════════════════════════
+    # XP (ИТЕРАЦИЯ 15) — скрытая характеристика; видят только
+    # Мастер-нейросеть и DB-бот. Авто-уровневание по порогам
+    # libs.xp_system.LEVEL_XP_THRESHOLDS.
+    # ═══════════════════════════════════════════════════════════
+
+    def grant_character_xp(self, character_id: str, amount: int, source: str = "") -> Optional[Dict]:
+        """Начислить XP персонажу и АВТОМАТИЧЕСКИ поднять уровень, если накопленный
+        XP достиг порога из раздела 1 ТЗ («Повышение уровня происходит сразу»).
+
+        Возвращает словарь:
+          {"character_name", "xp_added", "xp_total", "old_level", "new_level",
+           "leveled_up", "next_threshold", "source"}
+        или None, если персонаж не найден. Отрицательные суммы клампятся так,
+        что итоговый XP не опускается ниже 0.
+        """
+        from libs.xp_system import level_for_xp, next_level_threshold
+
+        char = self.get_character(character_id)
+        if not char:
+            return None
+        try:
+            amount = int(amount)
+        except (TypeError, ValueError):
+            amount = 0
+        old_xp = max(0, int(getattr(char, "xp", 0) or 0))
+        new_xp = max(0, old_xp + amount)
+        new_level = level_for_xp(new_xp)
+        old_level = char.level
+        leveled_up = new_level > old_level
+
+        with self._connect() as conn:
+            if leveled_up:
+                conn.execute(
+                    "UPDATE characters SET xp = ?, level = ? WHERE id = ?",
+                    (new_xp, new_level, character_id)
+                )
+            else:
+                conn.execute(
+                    "UPDATE characters SET xp = ? WHERE id = ?",
+                    (new_xp, character_id)
+                )
+
+        journal = f"{char.name}: {'+' if amount >= 0 else ''}{amount} XP ({source or 'AI'}) -> {new_xp} XP"
+        if leveled_up:
+            journal += f"; УРОВЕНЬ {old_level} -> {new_level} (авто по XP)"
+        self.add_journal_entry(char.session_id, "UPDATE", "characters", character_id, journal)
+
+        return {
+            "character_name": char.name,
+            "xp_added": amount,
+            "xp_total": new_xp,
+            "old_level": old_level,
+            "new_level": new_level,
+            "leveled_up": leveled_up,
+            "next_threshold": next_level_threshold(new_level),
+            "source": source or "AI",
+        }
+
+    def set_character_xp(self, character_id: str, xp: int) -> Optional[Dict]:
+        """Жёстко выставить XP (коррекции/тесты). Уровень синхронизируется по порогам."""
+        from libs.xp_system import level_for_xp, next_level_threshold
+
+        char = self.get_character(character_id)
+        if not char:
+            return None
+        try:
+            xp = max(0, int(xp))
+        except (TypeError, ValueError):
+            xp = 0
+        new_level = level_for_xp(xp)
+        old_level = char.level
+        with self._connect() as conn:
+            if new_level != old_level:
+                conn.execute(
+                    "UPDATE characters SET xp = ?, level = ? WHERE id = ?",
+                    (xp, new_level, character_id)
+                )
+            else:
+                conn.execute("UPDATE characters SET xp = ? WHERE id = ?", (xp, character_id))
+        self.add_journal_entry(char.session_id, "UPDATE", "characters", character_id,
+                               f"{char.name}: XP -> {xp}" + (f"; УРОВЕНЬ {old_level} -> {new_level}" if new_level != old_level else ""))
+        return {
+            "character_name": char.name,
+            "xp_total": xp,
+            "old_level": old_level,
+            "new_level": new_level,
+            "leveled_up": new_level > old_level,
+            "next_threshold": next_level_threshold(new_level),
+            "source": "set",
+        }
 
 
     def set_character_ability_score(self, character_id: str, ability: str, value: int):
@@ -254,9 +347,24 @@ class CharacterRepoMixin:
             return (stats.get(stat, 10) - 10) // 2
 
         prof_bonus = 2 + (char.level - 1) // 4  # 5e progression: +2 at 1-4, +3 at 5-8, ...
+        try:
+            from libs.xp_system import next_level_threshold as _nxt
+            _next_thr = _nxt(char.level)
+        except Exception:
+            _next_thr = None
+        xp_total = max(0, int(getattr(char, "xp", 0) or 0))
+        xp_line = f"XP: {xp_total}"
+        if xp_total > 0:
+            # ИТЕРАЦИЯ 15: XP — скрытая характеристика. Эта сводка идёт ТОЛЬКО в
+            # контекст Мастера/LLM-бросков — игроки её не видят.
+            if _next_thr is not None:
+                xp_line += f" (до уровня {char.level + 1}: {_next_thr} XP)"
+            else:
+                xp_line += " (максимальный уровень)"
         lines = [
             f"{char.name} — {char.race} {char.class_name}, уровень {char.level}",
             f"HP {char.hp}/{char.max_hp} | AC {char.ac} | Бонус мастерства +{prof_bonus}",
+            xp_line,
             f"СИЛ {stats.get('strength',10)}({mod('strength'):+d}) ЛОВ {stats.get('dexterity',10)}({mod('dexterity'):+d}) "
             f"ТЕЛ {stats.get('constitution',10)}({mod('constitution'):+d}) ИНТ {stats.get('intelligence',10)}({mod('intelligence'):+d}) "
             f"МУД {stats.get('wisdom',10)}({mod('wisdom'):+d}) ХАР {stats.get('charisma',10)}({mod('charisma'):+d})",
@@ -343,6 +451,7 @@ class CharacterRepoMixin:
             is_alive=bool(row["is_alive"]),
             conditions=row["conditions"] or "[]",
             languages=row["languages"] or "[]",
+            xp=(row["xp"] if "xp" in row.keys() else 0) or 0,
         )
 
     def add_hp_log(self, session_id: str, character_id: str, character_name: str,

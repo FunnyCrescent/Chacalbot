@@ -139,16 +139,20 @@ class BaseDatabase:
                     is_alive INTEGER DEFAULT 1,
                     conditions TEXT DEFAULT '[]',
                     languages TEXT DEFAULT '[]',
+                    xp INTEGER DEFAULT 0,
                     FOREIGN KEY (session_id) REFERENCES sessions(id)
                 )
             """)
-            # Migration: add languages column to existing characters tables
+            # Migration: add languages/xp columns to existing characters tables
+            # (xp — ИТЕРАЦИЯ 15: скрытый опыт, авто-уровневание по порогам libs.xp_system)
             try:
                 char_cols = {r["name"] for r in conn.execute("PRAGMA table_info(characters)").fetchall()}
                 if "languages" not in char_cols:
                     conn.execute("ALTER TABLE characters ADD COLUMN languages TEXT DEFAULT '[]'")
+                if "xp" not in char_cols:
+                    conn.execute("ALTER TABLE characters ADD COLUMN xp INTEGER DEFAULT 0")
             except Exception as e:
-                logger.warning(f"characters.languages migration check failed (non-fatal): {e}")
+                logger.warning(f"characters migration check failed (non-fatal): {e}")
 
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS history (
